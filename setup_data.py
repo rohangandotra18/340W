@@ -1,152 +1,236 @@
 """
-setup_data.py  —  Download METR-LA and PEMS-BAY datasets into ./data/
+setup_data.py  —  Download or generate METR-LA dataset into ./data/
 
 Run once before training:
     python setup_data.py
 
-No code changes needed after this — all training commands in the README
-point to data/metr-la.npz and data/adj_metr_la.npz by default.
+Strategy:
+  1. Try downloading the real METR-LA .npz from known working URLs
+  2. If all downloads fail (firewall, 404), generate realistic synthetic
+     data with the same shape and statistics — lets the full pipeline run
+
+Real METR-LA:  207 nodes, 34,272 timesteps, 5-min intervals, Los Angeles
 """
 
 import os
-import urllib.request
-import zipfile
-import shutil
 import sys
+import urllib.request
+import numpy as np
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
+# ── known working download URLs (tried in order) ─────────────────────────────
+METR_LA_URLS = [
+    # Zenodo mirror (reliable, no auth)
+    "https://zenodo.org/records/5724451/files/metr-la.npz?download=1",
+    # GMAN paper data repo
+    "https://raw.githubusercontent.com/zhengchuanpan/GMAN/master/data/metr-la.npz",
+    # traffic-bench mirror
+    "https://github.com/deepkashiwa20/MegaCRN/releases/download/data/METR-LA.npz",
+]
+
+ADJ_URLS = [
+    "https://raw.githubusercontent.com/liyaguang/DCRNN/master/data/sensor_graph/distances_la_2012.csv",
+    "https://raw.githubusercontent.com/zhengchuanpan/GMAN/master/data/W_228.csv",
+]
+
+# ── expected METR-LA key names (different repos use different keys) ───────────
+DATA_KEYS = ["data", "x", "speed", "X", "array"]
+ADJ_KEYS  = ["adj_mx", "adj", "W", "A"]
 
 
-def download(url: str, dest: str, label: str) -> None:
-    """Download url → dest with a simple progress bar."""
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
+def try_download(urls: list, dest: str, label: str) -> bool:
+    """Try each URL in order. Return True if any succeeds."""
     if os.path.exists(dest):
-        print(f"  [skip] {label} already exists at {dest}")
-        return
-
-    print(f"  Downloading {label} …", end="", flush=True)
-
-    def _progress(block_num, block_size, total_size):
-        downloaded = block_num * block_size
-        if total_size > 0:
-            pct = min(downloaded / total_size * 100, 100)
-            print(f"\r  Downloading {label} … {pct:.0f}%", end="", flush=True)
-
-    try:
-        urllib.request.urlretrieve(url, dest, reporthook=_progress)
-        print(f"\r  Downloaded  {label} → {dest}      ")
-    except Exception as e:
-        print(f"\n  ERROR: Could not download {label}: {e}")
-        print(f"  Please download manually from the README instructions.")
-        sys.exit(1)
+        print(f"  [skip] {label} already exists")
+        return True
+    for url in urls:
+        try:
+            print(f"  Trying {url[:70]}…", end="", flush=True)
+            urllib.request.urlretrieve(url, dest)
+            print(" OK")
+            return True
+        except Exception as e:
+            print(f" failed ({type(e).__name__})")
+            if os.path.exists(dest):
+                os.remove(dest)
+    return False
 
 
-def unzip_if_needed(zip_path: str, extract_dir: str) -> None:
-    if not zipfile.is_zipfile(zip_path):
-        return
-    print(f"  Extracting {os.path.basename(zip_path)} …")
-    with zipfile.ZipFile(zip_path, "r") as z:
-        z.extractall(extract_dir)
-    os.remove(zip_path)
+def load_or_fix_npz(path: str, data_keys: list, adj_keys: list):
+    """
+    Load an npz and return (data_array, adj_array_or_None).
+    Handles different key names across dataset repos.
+    """
+    npz = np.load(path, allow_pickle=True)
+    keys = list(npz.keys())
+
+    # Find data array
+    data = None
+    for k in data_keys:
+        if k in keys:
+            data = npz[k].astype(np.float32)
+            print(f"  Found data under key '{k}', shape {data.shape}")
+            break
+    if data is None:
+        print(f"  Warning: none of {data_keys} found in {path}. Keys: {keys}")
+        return None, None
+
+    # Normalise shape to (T, N, C)
+    if data.ndim == 2:          # (T, N) → add channel dim
+        data = data[:, :, np.newaxis]
+    elif data.ndim == 4:        # (samples, T, N, C) → flatten samples
+        data = data.reshape(-1, *data.shape[2:])
+
+    # Find adj (optional)
+    adj = None
+    for k in adj_keys:
+        if k in keys:
+            adj = npz[k].astype(np.float32)
+            print(f"  Found adj under key '{k}', shape {adj.shape}")
+            break
+
+    return data, adj
+
+
+def build_adj_from_distances(csv_path: str, n_nodes: int = 207) -> np.ndarray:
+    """Build row-normalised adjacency matrix from DCRNN distances CSV."""
+    import csv
+    sensor_ids, rows = set(), []
+    with open(csv_path) as f:
+        reader = csv.reader(f)
+        next(reader)
+        for row in reader:
+            if len(row) >= 3:
+                sensor_ids.update([row[0], row[1]])
+                rows.append((row[0], row[1], float(row[2])))
+    id2idx = {sid: i for i, sid in enumerate(sorted(sensor_ids))}
+    N = len(id2idx)
+    adj = np.zeros((N, N), dtype=np.float32)
+    std = 10.0
+    for u, v, d in rows:
+        w = float(np.exp(-(d ** 2) / (std ** 2)))
+        if w > 0.1:
+            adj[id2idx[u], id2idx[v]] = w
+            adj[id2idx[v], id2idx[u]] = w
+    row_sum = adj.sum(axis=1, keepdims=True).clip(min=1e-6)
+    return adj / row_sum
+
+
+def generate_synthetic_metr_la() -> tuple:
+    """
+    Generate synthetic METR-LA-shaped data with realistic traffic statistics.
+
+    Shape:  (34272, 207, 1)  — 34272 timesteps × 207 sensors × 1 feature
+    Stats:  speeds ~ 45 mph mean, with rush-hour dips and sensor correlation
+
+    This lets the full training pipeline run when the real data is unavailable.
+    The model will train and produce valid outputs; results won't match
+    published METR-LA benchmarks until you swap in the real data.
+    """
+    print("\n  Generating synthetic METR-LA data (realistic shape & statistics)…")
+    np.random.seed(42)
+
+    T, N, C = 34272, 207, 1
+    # Time of day index (288 steps per day at 5-min intervals)
+    t_idx = np.arange(T) % 288
+
+    # Base speed with rush-hour pattern: dips at ~8am (96) and ~5pm (204)
+    base = 55.0 - 20 * np.exp(-((t_idx - 96) ** 2) / (2 * 15 ** 2)) \
+                - 15 * np.exp(-((t_idx - 204) ** 2) / (2 * 12 ** 2))
+    base = base.astype(np.float32)  # (T,)
+
+    # Spatial correlation: sensors in 5 groups (geographic clusters)
+    group = np.repeat(np.arange(5), N // 5 + 1)[:N]
+    spatial_factor = 1.0 + 0.1 * (group / 4.0 - 0.5)   # (N,)
+
+    # Combine: (T, N) with noise
+    speeds = base[:, None] * spatial_factor[None, :]
+    speeds += np.random.normal(0, 3.0, (T, N)).astype(np.float32)
+    speeds = speeds.clip(5, 75)[:, :, np.newaxis]   # (T, N, 1)
+
+    # Simple ring topology adjacency matrix
+    adj = np.zeros((N, N), dtype=np.float32)
+    for i in range(N):
+        for delta in [-2, -1, 1, 2]:
+            j = (i + delta) % N
+            w = 0.8 if abs(delta) == 1 else 0.4
+            adj[i, j] = w
+    row_sum = adj.sum(axis=1, keepdims=True).clip(min=1e-6)
+    adj = adj / row_sum
+
+    return speeds, adj
 
 
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     print(f"\nPDFormer++ Data Setup")
-    print(f"Target directory: {DATA_DIR}\n")
-
-    # ── METR-LA ──────────────────────────────────────────────────────────────
-    print("[ METR-LA ]")
+    print(f"Target: {DATA_DIR}\n")
 
     metr_npz = os.path.join(DATA_DIR, "metr-la.npz")
     adj_npz  = os.path.join(DATA_DIR, "adj_metr_la.npz")
 
-    # LibCity hosts these at a stable URL
-    download(
-        url="https://github.com/LibCity/Bigscity-LibCity-Datasets/releases/download/v0.1/METR_LA.zip",
-        dest=os.path.join(DATA_DIR, "METR_LA.zip"),
-        label="METR-LA (zip)",
-    )
-    unzip_if_needed(os.path.join(DATA_DIR, "METR_LA.zip"), DATA_DIR)
+    data_arr = adj_arr = None
 
-    # Rename to expected filenames if extracted with different names
-    for candidate in ["metr_la.npz", "METR_LA.npz", "metr-la.dyna"]:
-        src = os.path.join(DATA_DIR, candidate)
-        if os.path.exists(src) and not os.path.exists(metr_npz):
-            shutil.move(src, metr_npz)
-            print(f"  Renamed {candidate} → metr-la.npz")
+    # ── Step 1: Try to download real METR-LA ─────────────────────────────────
+    print("[ Attempting METR-LA download ]")
+    tmp = os.path.join(DATA_DIR, "_download_tmp.npz")
 
-    # Adjacency matrix (small file, directly downloadable)
-    download(
-        url="https://raw.githubusercontent.com/liyaguang/DCRNN/master/data/sensor_graph/distances_la_2012.csv",
-        dest=os.path.join(DATA_DIR, "distances_la_2012.csv"),
-        label="METR-LA distances CSV",
-    )
+    downloaded = try_download(METR_LA_URLS, tmp, "METR-LA npz")
 
-    # Build adjacency matrix from distances CSV if adj_metr_la.npz doesn't exist
-    if not os.path.exists(adj_npz):
-        print("  Building adjacency matrix from distances …")
-        try:
-            import numpy as np
-            import csv
+    if downloaded and os.path.exists(tmp):
+        data_arr, adj_arr = load_or_fix_npz(tmp, DATA_KEYS, ADJ_KEYS)
+        os.remove(tmp)
+        if data_arr is None:
+            print("  Downloaded file had unexpected format — falling back to synthetic")
 
-            dist_file = os.path.join(DATA_DIR, "distances_la_2012.csv")
-            sensor_ids = set()
-            rows = []
-            with open(dist_file) as f:
-                reader = csv.reader(f)
-                next(reader)  # skip header
-                for row in reader:
-                    if len(row) >= 3:
-                        sensor_ids.add(row[0])
-                        sensor_ids.add(row[1])
-                        rows.append((row[0], row[1], float(row[2])))
+    # ── Step 2: Try adjacency CSV if no adj yet ───────────────────────────────
+    if adj_arr is None:
+        print("\n[ Attempting adjacency matrix download ]")
+        dist_csv = os.path.join(DATA_DIR, "distances_la_2012.csv")
+        if try_download(ADJ_URLS, dist_csv, "distances CSV"):
+            try:
+                adj_arr = build_adj_from_distances(dist_csv)
+                print(f"  Built adj matrix from distances: {adj_arr.shape}")
+            except Exception as e:
+                print(f"  Could not build adj from CSV: {e}")
 
-            id_to_idx = {sid: i for i, sid in enumerate(sorted(sensor_ids))}
-            N = len(id_to_idx)
-            adj = np.zeros((N, N), dtype=np.float32)
-            std = 10.0  # Gaussian kernel bandwidth (km)
-            for u, v, d in rows:
-                w = float(np.exp(-(d ** 2) / (std ** 2)))
-                if w > 0.1:
-                    adj[id_to_idx[u], id_to_idx[v]] = w
-                    adj[id_to_idx[v], id_to_idx[u]] = w
+    # ── Step 3: Fall back to synthetic if downloads failed ────────────────────
+    if data_arr is None:
+        print("\n[ Download failed — generating synthetic data ]")
+        print("  (Synthetic data lets the pipeline run; swap real data for benchmarks)")
+        data_arr, adj_arr_syn = generate_synthetic_metr_la()
+        if adj_arr is None:
+            adj_arr = adj_arr_syn
 
-            # Row-normalise
-            row_sum = adj.sum(axis=1, keepdims=True)
-            row_sum[row_sum == 0] = 1.0
-            adj = adj / row_sum
+    # ── Save ──────────────────────────────────────────────────────────────────
+    print(f"\n[ Saving ]")
+    np.savez_compressed(metr_npz, data=data_arr)
+    print(f"  Saved data {data_arr.shape} → {metr_npz}")
 
-            np.savez_compressed(adj_npz, adj=adj)
-            print(f"  Saved adjacency matrix ({N}×{N}) → {adj_npz}")
+    if adj_arr is not None:
+        np.savez_compressed(adj_npz, adj_mx=adj_arr)
+        print(f"  Saved adj  {adj_arr.shape} → {adj_npz}")
 
-        except Exception as e:
-            print(f"  Warning: Could not build adjacency matrix automatically: {e}")
-            print(f"  You can still train without --adj_path (model uses identity matrix).")
-
-    # ── Summary ──────────────────────────────────────────────────────────────
+    # ── Summary ───────────────────────────────────────────────────────────────
     print("\n[ Status ]")
     for fname in ["metr-la.npz", "adj_metr_la.npz"]:
         path = os.path.join(DATA_DIR, fname)
-        status = "OK" if os.path.exists(path) else "MISSING"
-        size   = f"{os.path.getsize(path) / 1e6:.1f} MB" if os.path.exists(path) else ""
-        print(f"  {status:7s}  {fname}  {size}")
+        if os.path.exists(path):
+            size = os.path.getsize(path) / 1e6
+            print(f"  OK       {fname}  ({size:.1f} MB)")
+        else:
+            print(f"  MISSING  {fname}")
 
     print("""
-Setup complete.  You can now run:
+Ready. Run the smoke test:
 
-  # Standard training
   python train.py \\
     --data_path data/metr-la.npz \\
     --adj_path  data/adj_metr_la.npz \\
-    --n_nodes 207 --in_channels 1 --epochs 150 --batch_size 64
-
-  # Decision-focused (SPO+)
-  python train.py \\
-    --data_path data/metr-la.npz \\
-    --adj_path  data/adj_metr_la.npz \\
-    --n_nodes 207 --in_channels 1 --epochs 150 --batch_size 64 \\
-    --use_spo --spo_weight 0.5
+    --n_nodes 207 --in_channels 1 \\
+    --epochs 5 --batch_size 16 \\
+    --output_dir ./checkpoints/test
 """)
 
 
