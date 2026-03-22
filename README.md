@@ -191,7 +191,7 @@ cd 340W
 ### 2. Set up your Python environment
 
 ```bash
-module load python/3.12
+module load python/3.11.2
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
