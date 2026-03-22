@@ -1,0 +1,30 @@
+# PEMS-BAY dataset configuration
+data:
+  data_path: /path/to/pems-bay.npz
+  adj_path: /path/to/adj_pems_bay.npz
+  in_channels: 3
+  in_horizon: 12
+  out_horizon: 12
+
+model:
+  d_model: 64
+  n_temporal_layers: 2
+  n_spatial_layers: 2
+  n_heads: 8
+  d_state: 16
+  n_classes: 3
+  dropout: 0.1
+
+training:
+  epochs: 150
+  batch_size: 64
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  lambda1: 1.0
+  lambda2: 0.1
+  ffs: 65.0
+  num_workers: 4
+  output_dir: ./checkpoints/pems_bay
+
+spo:
+  use_spo: false

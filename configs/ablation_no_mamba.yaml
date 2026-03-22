@@ -1,0 +1,35 @@
+# Ablation: replace Mamba temporal backbone with standard GRU
+# Compare against the full model to measure Mamba's contribution
+
+data:
+  data_path: /path/to/metr-la.npz
+  adj_path: /path/to/adj_metr_la.npz
+  in_channels: 3
+  in_horizon: 12
+  out_horizon: 12
+
+model:
+  d_model: 64
+  n_temporal_layers: 2
+  n_spatial_layers: 2
+  n_heads: 8
+  d_state: 16
+  n_classes: 3
+  dropout: 0.1
+  # NOTE: to run this ablation, swap MambaTemporalBlock with GRUTemporalBlock
+  # in model/pdformer_plus.py (see ablation instructions in README)
+  temporal_backbone: gru
+
+training:
+  epochs: 150
+  batch_size: 64
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  lambda1: 1.0
+  lambda2: 0.1
+  ffs: 65.0
+  num_workers: 4
+  output_dir: ./checkpoints/ablation_no_mamba
+
+spo:
+  use_spo: false

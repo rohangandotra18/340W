@@ -1,0 +1,15 @@
+torch>=2.1.0
+numpy>=1.24.0
+networkx>=3.0
+scipy>=1.10.0
+pyyaml>=6.0
+
+# Optional: ~10x faster Mamba SSM scan on A100
+# mamba-ssm>=1.2.0
+
+# Optional: PyEPO for official SPO+ loss implementation
+# pyepo>=0.3.0
+
+# Optional: NYC Taxi dataset preprocessing
+# pandas>=2.0.0
+# geopandas>=0.13.0

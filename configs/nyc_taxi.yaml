@@ -1,0 +1,32 @@
+# NYC Taxi dataset configuration (integrated prediction + routing)
+data:
+  data_path: /path/to/nyc_taxi_preprocessed.npz
+  in_channels: 3    # speed, flow, demand
+  in_horizon: 12
+  out_horizon: 12
+
+model:
+  d_model: 64
+  n_temporal_layers: 2
+  n_spatial_layers: 3    # more spatial layers for zone-level aggregation
+  n_heads: 8
+  d_state: 16
+  n_classes: 3
+  dropout: 0.1
+
+training:
+  epochs: 200
+  batch_size: 32
+  lr: 5.0e-4
+  weight_decay: 1.0e-4
+  lambda1: 1.0
+  lambda2: 0.1
+  ffs: 40.0       # lower free-flow speed for urban NYC
+  num_workers: 4
+  output_dir: ./checkpoints/nyc_taxi
+
+spo:
+  use_spo: true
+  spo_weight: 0.5
+  spo_origin: 0
+  spo_destination: 50
