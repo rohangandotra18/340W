@@ -248,7 +248,7 @@ if __name__ == "__main__":
     p.add_argument("--dropout",            type=float, default=0.1)
 
     # Training
-    p.add_argument("--epochs",        type=int,   default=150)
+    p.add_argument("--epochs",        type=int,   default=50)
     p.add_argument("--batch_size",    type=int,   default=64)
     p.add_argument("--lr",            type=float, default=1e-3)
     p.add_argument("--weight_decay",  type=float, default=1e-4)
