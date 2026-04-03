@@ -53,3 +53,9 @@ tensorboard/
 # Misc
 *.tmp
 *.bak
+
+# Documents (submit separately, not in code repo)
+*.doc
+*.docx
+*.html
+*.pptx
