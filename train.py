@@ -164,8 +164,9 @@ def main(args: argparse.Namespace) -> None:
 
     # ── optimisation ─────────────────────────────────────────────────────
     if args.use_spo:
-        # Generate a simple chain graph for SPO+ if no explicit edges provided
-        edges = [(i, i + 1) for i in range(n_nodes - 1)]
+        # Extract REAL edges from the adjacency matrix (no artificial data)
+        edge_indices = (adj > 0.0).nonzero(as_tuple=False)
+        edges = [(int(u), int(v)) for u, v in edge_indices if u != v]
         criterion = SPOPlusTrafficLoss(
             edges=edges,
             n_nodes=n_nodes,

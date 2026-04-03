@@ -161,17 +161,26 @@ Reports MAE / RMSE / MAPE at 15, 30, and 60-minute horizons, plus congestion F1 
 import torch
 import numpy as np
 from pipeline import TrafficTransformerPipeline
+from data.traffic_dataset import TrafficDataset
 
+# 1. Load the REAL network topology and dataset, no artificial noise
+dataset = TrafficDataset(data_path="data/metr-la.npz", adj_path="data/adj_metr_la.npz", split="test")
+adj = dataset.adj
+edge_indices = (adj > 0.0).nonzero(as_tuple=False)
+real_edges = [(int(u), int(v)) for u, v in edge_indices if u != v]
+
+# 2. Build the pipeline with the true physical edges
 pipeline = TrafficTransformerPipeline(
-    checkpoint_path="checkpoints/metr_la/best_model.pt",
-    edges=[(i, i + 1) for i in range(206)],   # simple chain for METR-LA
-    link_lengths_km=np.array([1.0] * 206),
+    checkpoint_path="checkpoints/metr_la_spo/best_model.pt",
+    edges=real_edges,
+    link_lengths_km=np.array([1.0] * len(real_edges)),
 )
 
-# x: (1, 12, 207, 1)  —  1 sample, 12 past timesteps, 207 nodes, 1 feature
-x   = torch.randn(1, 12, 207, 1)
-adj = torch.eye(207)
+# 3. Request a real historical snapshot from the test set as input
+x, _ = dataset[0]  
+x = x.unsqueeze(0) # (1, 12, 207, 1)
 
+# 4. Route over the real Los Angeles highway network!
 result = pipeline.route(x, adj, origin=0, destination=100)
 print(f"Path:        {result['path']}")
 print(f"Travel time: {result['travel_time_min']:.1f} min")
