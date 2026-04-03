@@ -154,6 +154,14 @@ def main(args: argparse.Namespace) -> None:
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\nModel parameters: {n_params:,}")
 
+    # Compile model for massive speedups if using PyTorch 2.0+ on CUDA
+    if device.type == "cuda" and hasattr(torch, "compile"):
+        print("  Compiling model with torch.compile() for speed...")
+        try:
+            model = torch.compile(model)
+        except Exception as e:
+            print(f"  Warning: torch.compile() failed ({e}), continuing without it.")
+
     # ── optimisation ─────────────────────────────────────────────────────
     if args.use_spo:
         # Generate a simple chain graph for SPO+ if no explicit edges provided

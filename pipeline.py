@@ -54,9 +54,9 @@ class TrafficTransformerPipeline:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
         self.edges = edges
-        self.link_lengths = torch.from_numpy(link_lengths_km.astype(np.float32))
+        self.link_lengths = torch.from_numpy(np.asarray(link_lengths_km, dtype=np.float32))
         self.link_capacities = (
-            torch.from_numpy(link_capacities.astype(np.float32))
+            torch.from_numpy(np.asarray(link_capacities, dtype=np.float32))
             if link_capacities is not None
             else None
         )
