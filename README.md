@@ -194,7 +194,7 @@ Compares Mamba vs GRU vs Transformer speed, SPO+ routing quality vs standard los
 ### 1. SSH in and clone
 
 ```bash
-ssh abc1234@submit.hpc.psu.edu     # replace abc1234 with your PSU ID
+ssh rjg6014@submit.hpc.psu.edu     # replace rjg6014 with your PSU ID
 git clone https://github.com/rohangandotra18/340W.git
 cd 340W
 ```
