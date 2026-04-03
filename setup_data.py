@@ -172,7 +172,25 @@ def main():
 
     metr_npz = os.path.join(DATA_DIR, "metr-la.npz")
     adj_npz  = os.path.join(DATA_DIR, "adj_metr_la.npz")
-
+    # --------------------------------------------------------------
+    # NEW: If the real data files already exist, skip download/synthetic steps
+    # --------------------------------------------------------------
+    if os.path.exists(metr_npz) and os.path.exists(adj_npz):
+        print("[ INFO ] Real METR‑LA files already present – skipping download.")
+        try:
+            data_arr = np.load(metr_npz)['data']
+            adj_arr = np.load(adj_npz)['adj_mx']
+            print(f"  ✅ Data shape: {data_arr.shape}")
+            print(f"  ✅ Adj shape: {adj_arr.shape}")
+        except Exception as e:
+            print(f"  ⚠️  Could not read existing files: {e}")
+        print("\n[ Status ]")
+        for fname in ["metr-la.npz", "adj_metr_la.npz"]:
+            path = os.path.join(DATA_DIR, fname)
+            size = os.path.getsize(path) / 1e6
+            print(f"  OK       {fname}  ({size:.1f} MB)")
+        print("\nReady. Run the smoke test as usual.\n")
+        return
     data_arr = adj_arr = None
 
     # ── Step 1: Try to download real METR-LA ─────────────────────────────────
