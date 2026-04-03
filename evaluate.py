@@ -14,6 +14,8 @@ Usage:
         --data_path  /path/to/metr-la.npz \
         --adj_path   /path/to/adj_metr_la.npz
 """
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import argparse
 
 import numpy as np

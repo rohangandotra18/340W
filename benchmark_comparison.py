@@ -9,6 +9,8 @@ Compares:
 
 Run:  python benchmark_comparison.py
 """
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import time
 import torch
 import torch.nn as nn
