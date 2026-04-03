@@ -108,7 +108,7 @@ python train.py \
   --adj_path   data/adj_metr_la.npz \
   --in_channels 1 \
   --d_model    64 \
-  --epochs     150 \
+  --epochs     50 \
   --batch_size 64 \
   --output_dir ./checkpoints/metr_la
 ```
@@ -131,7 +131,7 @@ python train.py \
   --adj_path    data/adj_metr_la.npz \
   --in_channels 1 \
   --d_model     64 \
-  --epochs      150 \
+  --epochs      50 \
   --batch_size  64 \
   --use_spo \
   --spo_weight  0.5 \
@@ -244,7 +244,7 @@ python train.py \
   --adj_path   data/adj_metr_la.npz \
   --in_channels 1 \
   --d_model    64 \
-  --epochs     150 \
+  --epochs     50 \
   --batch_size 64 \
   --output_dir ./checkpoints/metr_la
 EOF
