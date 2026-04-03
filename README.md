@@ -62,15 +62,20 @@ Input (B, T, N, C)
 
 ---
 
-## Quickstart — No Code Changes Required
+## Quickstart
 
 ### Step 1 — Clone and install
 
 ```bash
 git clone https://github.com/rohangandotra18/340W.git
 cd 340W
-pip install -r requirements.txt
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install 'numpy<2' torch networkx scipy pyyaml
 ```
+
+> **Note:** PyTorch 2.2 requires `numpy<2`. The above installs numpy 1.x first to avoid compatibility issues.
 
 Optional — real Mamba CUDA kernels (~10× faster on A100/V100):
 ```bash
@@ -101,13 +106,20 @@ data/
 python train.py \
   --data_path  data/metr-la.npz \
   --adj_path   data/adj_metr_la.npz \
-  --n_nodes    207 \
   --in_channels 1 \
   --d_model    64 \
   --epochs     150 \
   --batch_size 64 \
   --output_dir ./checkpoints/metr_la
 ```
+
+> **macOS (CPU):** Add `--num_workers 0` and reduce epochs for a quick test:
+> ```bash
+> python train.py \
+>   --data_path data/metr-la.npz --adj_path data/adj_metr_la.npz \
+>   --in_channels 1 --d_model 32 --epochs 5 --batch_size 16 \
+>   --num_workers 0 --output_dir ./checkpoints/test
+> ```
 
 ---
 
@@ -117,7 +129,6 @@ python train.py \
 python train.py \
   --data_path   data/metr-la.npz \
   --adj_path    data/adj_metr_la.npz \
-  --n_nodes     207 \
   --in_channels 1 \
   --d_model     64 \
   --epochs      150 \
@@ -224,7 +235,6 @@ cd ~/340W
 python train.py \
   --data_path  data/metr-la.npz \
   --adj_path   data/adj_metr_la.npz \
-  --n_nodes    207 \
   --in_channels 1 \
   --d_model    64 \
   --epochs     150 \
@@ -252,7 +262,7 @@ Run the two pre-built ablations:
 python train.py \
   --data_path  data/metr-la.npz \
   --adj_path   data/adj_metr_la.npz \
-  --n_nodes    207 --in_channels 1 \
+  --in_channels 1 \
   --output_dir ./checkpoints/ablation_no_spo
 
 # SPO+ impact — compare checkpoints/metr_la vs checkpoints/metr_la_spo

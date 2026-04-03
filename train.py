@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Training script for PDFormer++.
 
@@ -122,15 +123,14 @@ def main(args: argparse.Namespace) -> None:
     train_ds = TrafficDataset(**common, split="train")
     val_ds   = TrafficDataset(**common, split="val")
 
+    _loader_kw = dict(num_workers=args.num_workers, pin_memory=True)
+    if args.num_workers > 0:
+        _loader_kw.update(prefetch_factor=2, persistent_workers=True)
     train_loader = DataLoader(
-        train_ds, batch_size=args.batch_size, shuffle=True,
-        num_workers=args.num_workers, pin_memory=True, prefetch_factor=2,
-        persistent_workers=args.num_workers > 0,
+        train_ds, batch_size=args.batch_size, shuffle=True, **_loader_kw,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.num_workers, pin_memory=True,
-        persistent_workers=args.num_workers > 0,
+        val_ds, batch_size=args.batch_size, shuffle=False, **_loader_kw,
     )
 
     adj = train_ds.adj.to(device)

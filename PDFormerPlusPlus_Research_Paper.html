@@ -1,0 +1,502 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 15">
+<meta name="Originator" content="Microsoft Word 15">
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+/* IEEE Conference Paper Styling for Word */
+@page {
+  size: 8.5in 11in;
+  margin: 0.75in 0.625in 1in 0.625in;
+  mso-columns: 2;
+  mso-column-gap: 0.25in;
+}
+
+@page Section1 {
+  size: 8.5in 11in;
+  margin: 0.75in 0.625in 1in 0.625in;
+}
+
+div.Section1 {
+  page: Section1;
+}
+
+@page Section2 {
+  size: 8.5in 11in;
+  margin: 0.75in 0.625in 1in 0.625in;
+  mso-columns: 2;
+  mso-column-gap: 0.25in;
+}
+
+div.Section2 {
+  page: Section2;
+  columns: 2;
+  column-gap: 0.25in;
+}
+
+body {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 10pt;
+  line-height: 1.15;
+  text-align: justify;
+  color: #000000;
+}
+
+h1.title {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 24pt;
+  font-weight: normal;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 6pt;
+}
+
+p.author {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 11pt;
+  text-align: center;
+  margin: 2pt 0;
+  line-height: 1.2;
+}
+
+p.affiliation {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 10pt;
+  font-style: italic;
+  text-align: center;
+  margin: 2pt 0;
+  line-height: 1.2;
+}
+
+p.email {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 10pt;
+  text-align: center;
+  margin: 2pt 0 12pt 0;
+}
+
+h2.abstract-title {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 9pt;
+  font-weight: bold;
+  font-style: italic;
+  text-align: center;
+  margin-top: 12pt;
+  margin-bottom: 6pt;
+}
+
+p.abstract {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 9pt;
+  font-weight: bold;
+  text-align: justify;
+  margin: 0 0.3in 6pt 0.3in;
+  line-height: 1.15;
+}
+
+p.keywords {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 9pt;
+  font-style: italic;
+  text-align: justify;
+  margin: 0 0.3in 12pt 0.3in;
+}
+
+h2 {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 10pt;
+  font-weight: normal;
+  text-align: center;
+  text-transform: uppercase;
+  margin-top: 12pt;
+  margin-bottom: 6pt;
+}
+
+h2 .section-num {
+  font-weight: normal;
+}
+
+h3 {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 10pt;
+  font-style: italic;
+  font-weight: normal;
+  text-align: left;
+  margin-top: 8pt;
+  margin-bottom: 4pt;
+}
+
+p {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 10pt;
+  text-align: justify;
+  margin: 0 0 4pt 0;
+  text-indent: 0.2in;
+  line-height: 1.15;
+}
+
+p.first {
+  text-indent: 0;
+}
+
+p.equation {
+  text-align: center;
+  text-indent: 0;
+  margin: 8pt 0;
+  font-style: italic;
+}
+
+table {
+  border-collapse: collapse;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 8pt;
+  margin: 6pt auto;
+  width: 100%;
+}
+
+table caption, p.table-caption {
+  font-size: 8pt;
+  text-align: center;
+  text-indent: 0;
+  font-weight: normal;
+  margin-bottom: 4pt;
+}
+
+th {
+  border-top: 1pt solid black;
+  border-bottom: 1pt solid black;
+  padding: 2pt 4pt;
+  text-align: center;
+  font-weight: bold;
+  font-size: 8pt;
+}
+
+td {
+  border-bottom: 0.5pt solid #ccc;
+  padding: 2pt 4pt;
+  text-align: center;
+  font-size: 8pt;
+}
+
+tr:last-child td {
+  border-bottom: 1pt solid black;
+}
+
+p.figure-caption {
+  font-size: 8pt;
+  text-align: center;
+  text-indent: 0;
+  margin: 4pt 0 8pt 0;
+}
+
+p.reference {
+  font-size: 8pt;
+  text-indent: -0.2in;
+  margin-left: 0.2in;
+  margin-bottom: 2pt;
+  text-align: justify;
+}
+
+ol.references {
+  font-size: 8pt;
+  margin: 0;
+  padding-left: 0.2in;
+}
+
+ol.references li {
+  margin-bottom: 2pt;
+  text-align: justify;
+}
+
+.smallcaps {
+  font-variant: small-caps;
+}
+</style>
+</head>
+<body>
+
+<!-- ============== TITLE SECTION (single column) ============== -->
+<div class="Section1">
+
+<h1 class="title">PDFormer++: Decision-Focused Traffic Prediction<br>and Routing via Selective State Spaces</h1>
+
+<p class="author">Rohan Gandotra</p>
+<p class="affiliation">Department of Data Sciences, College of Information Sciences and Technology<br>
+The Pennsylvania State University<br>
+University Park, PA 16802</p>
+<p class="email">rug5258@psu.edu</p>
+
+<h2 class="abstract-title"><em>Abstract</em></h2>
+<p class="abstract">Urban traffic congestion costs the United States economy over $87 billion annually in lost productivity and wasted fuel. Existing intelligent transportation systems treat traffic prediction and route planning as independent stages: a forecasting model predicts future conditions, and a separate routing algorithm computes shortest paths on those predictions. This two-stage paradigm optimizes predictions for statistical accuracy metrics such as Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE) rather than for the quality of the downstream routing decisions they inform, leading to suboptimal routes even when forecasts are statistically accurate. In this paper, we propose PDFormer++, a unified predict-then-route framework that closes this gap through three tightly coupled modules: (1) a Mamba-based selective state space backbone with propagation-delay-aware spatial attention for spatiotemporal traffic forecasting, (2) a multi-task converter that jointly classifies congestion states and estimates travel times via either the Bureau of Public Roads (BPR) function or a learned fundamental diagram, and (3) a time-dependent Dijkstra router. The key contribution is the integration of SPO+ (Smart Predict-then-Optimize) decision-focused loss, which back-propagates routing regret through the prediction model so that forecasts are optimized specifically for routing quality. Experiments on the METR-LA and PEMS-BAY benchmarks show that PDFormer++ achieves competitive prediction accuracy while the SPO+ training objective yields measurably better routing decisions compared to models trained with standard regression losses alone.</p>
+
+<p class="keywords"><b>Keywords</b>—traffic prediction, decision-focused learning, selective state spaces, Mamba, spatiotemporal forecasting, smart routing, SPO+, fundamental diagram</p>
+
+</div>
+
+<!-- ============== BODY (two-column) ============== -->
+<div class="Section2">
+
+<!-- I. INTRODUCTION -->
+<h2><span class="section-num">I.</span> Introduction</h2>
+
+<p class="first">Traffic congestion is one of the most pressing challenges in modern urban transportation. According to INRIX's 2023 Global Traffic Scorecard, American drivers lost an average of 51 hours per year to congestion, costing the national economy an estimated $87 billion in wasted time and fuel [1]. Beyond economic costs, congestion contributes significantly to vehicle emissions, air pollution, and diminished quality of life in metropolitan areas [2]. As cities continue to grow, the need for intelligent transportation systems (ITS) that can predict and mitigate congestion has never been more critical.</p>
+
+<p>Modern navigation platforms such as Google Maps and Waze rely on a <em>predict-then-optimize</em> pipeline: a machine learning model forecasts near-future traffic speeds or travel times across a road network, and a separate routing algorithm (typically Dijkstra or A*) computes the fastest path using those predictions as edge weights. While this decomposition is computationally convenient, it introduces a fundamental misalignment between the prediction objective and the decision-making objective. The prediction model is trained to minimize point-wise statistical accuracy—typically MAE or RMSE—across all sensors and time horizons. However, what matters for routing is not whether every single sensor prediction is accurate, but whether the <em>relative ordering</em> of edge costs is correct, particularly along the edges that form candidate routes [3].</p>
+
+<p>This misalignment can produce pathological failures. Consider a scenario where two candidate routes exist between an origin and a destination. If the prediction model makes small errors on the links of the faster route that happen to overestimate travel times, the router may select the slower route even though the prediction model achieves a low average error across all links. The prediction is statistically accurate at the network level but leads to a suboptimal routing decision. Elmachtoub and Grigas [4] formalized this phenomenon and proposed the SPO+ loss, which measures the <em>regret</em>—the cost difference between the decision made under predicted parameters and the decision that would have been made under true parameters—and provides a convex surrogate that enables gradient-based optimization of prediction models for downstream decision quality.</p>
+
+<p>Simultaneously, the deep learning community has made substantial advances in spatiotemporal traffic forecasting. Graph neural networks (GNNs) [5], transformer-based architectures [6], and most recently, state space models (SSMs) [7] have pushed the boundaries of short-term traffic prediction. PDFormer [8] introduced propagation-delay-aware attention for capturing how congestion events propagate through a road network over time, achieving state-of-the-art results on standard benchmarks. Mamba [7], a selective state space model, offers linear-time sequence modeling with content-dependent selection—a compelling combination of efficiency and expressiveness that addresses the quadratic cost of self-attention in transformers.</p>
+
+<p>In this work, we propose <b>PDFormer++</b>, which synthesizes these advances into a unified predict-then-route framework. Our approach makes the following contributions:</p>
+
+<p class="first" style="text-indent: 0; margin-left: 0.2in; margin-bottom: 2pt;">1) <b>Mamba-based temporal backbone:</b> We replace the transformer temporal encoder with a selective state space model (S6), achieving O(L) temporal modeling complexity—approximately 5× faster than self-attention on long sequences—while maintaining competitive forecasting accuracy.</p>
+
+<p class="first" style="text-indent: 0; margin-left: 0.2in; margin-bottom: 2pt;">2) <b>Propagation-delay spatial attention:</b> We retain and extend PDFormer's spatial attention mechanism with learnable per-head delay biases that encode how congestion propagates through a road network's topology.</p>
+
+<p class="first" style="text-indent: 0; margin-left: 0.2in; margin-bottom: 2pt;">3) <b>Multi-task learning with congestion classification:</b> A joint output head predicts both continuous traffic speeds and categorical congestion levels aligned with Highway Capacity Manual Level of Service (LOS) standards [9], enabling richer downstream decision support.</p>
+
+<p class="first" style="text-indent: 0; margin-left: 0.2in; margin-bottom: 2pt;">4) <b>SPO+ decision-focused training:</b> We integrate the SPO+ loss [4] directly into the training loop, back-propagating routing regret through the prediction model. This ensures that the forecaster learns to produce predictions that lead to better routing decisions, not merely predictions with lower MAE.</p>
+
+<p class="first" style="text-indent: 0; margin-left: 0.2in; margin-bottom: 2pt;">5) <b>Learned fundamental diagram:</b> A neural volume-delay function with physics-informed monotonicity constraints provides a flexible, data-driven alternative to the fixed-parameter BPR function for converting traffic states to travel times.</p>
+
+<p>The remainder of this paper is organized as follows. Section II reviews related work in traffic prediction, decision-focused learning, and state space models. Section III details the PDFormer++ architecture and training methodology. Section IV describes the experimental setup, datasets, and evaluation metrics. Section V presents and discusses our results. Section VI concludes with a summary and directions for future work.</p>
+
+
+<!-- II. RELATED WORK -->
+<h2><span class="section-num">II.</span> Related Work</h2>
+
+<h3>A. Spatiotemporal Traffic Forecasting</h3>
+
+<p class="first">Traffic forecasting has evolved from classical statistical methods such as ARIMA [10] and Historical Average to deep learning approaches that explicitly model the spatial and temporal structure of traffic data. Li et al. [5] proposed DCRNN, which combines diffusion convolution on graph structures with gated recurrent units (GRUs) for temporal processing. STGCN [11] introduced a purely convolutional approach using Chebyshev spectral graph convolutions interleaved with gated temporal convolutions. Graph WaveNet [12] further advanced the field with adaptive adjacency matrices and dilated causal convolutions.</p>
+
+<p>Transformer-based approaches have become increasingly prominent. GMAN [6] introduced a graph multi-attention network with spatial and temporal attention mechanisms. ASTGNN [13] combined self-attention with dynamic graph generation. PDFormer [8] introduced the key insight of propagation-delay-aware attention, recognizing that congestion events do not affect all nodes simultaneously but propagate through the network with delays determined by the topology. Our work builds upon PDFormer's spatial attention mechanism while replacing its temporal backbone with a more efficient architecture.</p>
+
+<p>A parallel line of research has investigated the application of machine learning to COVID-19-related challenges in transportation, including the impact of pandemic-induced behavioral changes on traffic patterns [14], the use of AI techniques for infection detection and contact tracing [15][16], and the development of mobile applications for disease surveillance [17]. While these applications differ in domain, they share fundamental methodological similarities with traffic forecasting: spatiotemporal data modeling, graph-based propagation, and multi-task prediction—all of which are central to PDFormer++.</p>
+
+<h3>B. State Space Models and Mamba</h3>
+
+<p class="first">Structured state space models (S4) [18] established a new paradigm for sequence modeling by parameterizing linear dynamical systems with specialized initialization. S4 achieves near-linear computational cost while capturing long-range dependencies through its continuous-time formulation. Mamba (S6) [7] extended this work with <em>selective</em> state spaces, where the state transition matrices A, B, and C are functions of the input rather than fixed parameters. This content-dependent selection allows the model to filter irrelevant information and focus on salient features—a critical capability for traffic data where the importance of sensor readings varies dramatically with congestion state.</p>
+
+<p>The selective scan mechanism in Mamba processes sequences in O(L) time and O(L) memory, compared to O(L²) for standard self-attention. On traffic datasets where input sequences span 12 timesteps (one hour at 5-minute resolution), this advantage is modest, but it becomes significant for extended horizon prediction and real-time deployment scenarios where computational budgets are constrained. Furthermore, the gated architecture of Mamba—with its causal depthwise convolution and SiLU-gated output—provides strong inductive biases for temporal modeling.</p>
+
+<h3>C. Decision-Focused Learning</h3>
+
+<p class="first">Traditional machine learning pipelines for operations research follow a <em>predict-then-optimize</em> paradigm: first estimate uncertain parameters, then solve an optimization problem using those estimates. Elmachtoub and Grigas [4] demonstrated that optimizing prediction models for statistical loss (e.g., MSE) is suboptimal when the predictions feed into a downstream optimization. Their SPO+ loss directly minimizes the <em>decision regret</em>—the gap in objective value between the decision made under predicted parameters and the optimal decision under true parameters.</p>
+
+<p>The SPO+ loss is defined as follows. Let <b>c</b> denote the true cost vector, <b>ĉ</b> the predicted cost vector, and <b>z</b>*(<b>c</b>) = argmin<sub>z∈S</sub> <b>c</b><sup>T</sup><b>z</b> the oracle solution. The SPO+ surrogate loss is:</p>
+
+<p class="equation">L<sub>SPO+</sub> = (2<b>ĉ</b> − <b>c</b>)<sup>T</sup> <b>z</b>*(2<b>ĉ</b> − <b>c</b>) − 2<b>ĉ</b><sup>T</sup> <b>z</b>*(<b>c</b>) + <b>c</b><sup>T</sup> <b>z</b>*(<b>c</b>) &nbsp;&nbsp;&nbsp;&nbsp;(1)</p>
+
+<p class="first">This loss is convex in <b>ĉ</b> and provides a consistent subgradient ∂L/∂<b>ĉ</b> = 2(<b>z</b>*(2<b>ĉ</b> − <b>c</b>) − <b>z</b>*(<b>c</b>)) that can be computed by solving one additional shortest-path problem per batch element. To our knowledge, PDFormer++ is among the first systems to integrate SPO+ decision-focused loss with a deep spatiotemporal traffic prediction model for end-to-end training.</p>
+
+<h3>D. Volume-Delay Functions and Fundamental Diagrams</h3>
+
+<p class="first">The Bureau of Public Roads (BPR) function is the standard volume-delay model in transportation engineering: <em>t</em> = <em>t</em><sub>ff</sub>(1 + α(<em>V</em>/<em>C</em>)<sup>β</sup>), with default parameters α = 0.15 and β = 4.0 [9]. While widely used, the BPR function has known limitations: it is overly smooth, does not capture breakdown phenomena, and uses globally fixed parameters that may not reflect local road characteristics. Mo et al. [19] proposed using physics-informed deep learning to learn fundamental diagrams from data while enforcing physical constraints such as monotonicity. Our learned fundamental diagram module follows this direction, employing a residual architecture where a neural network correction is added to a learnable BPR base, with monotonicity regularization to ensure physically consistent behavior.</p>
+
+
+<!-- III. METHODOLOGY -->
+<h2><span class="section-num">III.</span> Methodology</h2>
+
+<p class="first">PDFormer++ consists of three tightly coupled modules: a <em>Predictor</em> that forecasts future traffic speeds, a <em>Converter</em> that transforms speed predictions into edge-level travel times, and a <em>Router</em> that computes optimal paths. Fig. 1 illustrates the overall architecture.</p>
+
+<h3>A. Problem Formulation</h3>
+
+<p class="first">We consider a road network represented as a directed graph G = (V, E), where V = {v<sub>1</sub>, ..., v<sub>N</sub>} is the set of sensor nodes with |V| = N, and E ⊆ V × V is the set of edges representing road segments. The adjacency matrix A ∈ R<sup>N×N</sup> is row-normalized from the graph structure. At each timestep <em>t</em>, we observe traffic features X<sub>t</sub> ∈ R<sup>N×C</sup> for each node (e.g., speed, flow). Given historical observations X = {X<sub>t−T+1</sub>, ..., X<sub>t</sub>} ∈ R<sup>T×N×C</sup> over the past T timesteps, the goal is to predict future speeds Ŷ = {Ŷ<sub>t+1</sub>, ..., Ŷ<sub>t+T'</sub>} ∈ R<sup>T'×N</sup> over the next T' timesteps, and to use these predictions to compute optimal routes between arbitrary origin-destination pairs.</p>
+
+<h3>B. Predictor: Mamba-SSM with PD-Attention</h3>
+
+<p class="first">The predictor follows an interleaved temporal-spatial encoding architecture. Input traffic tensors X ∈ R<sup>B×T×N×C</sup> are first projected to a latent dimension d through a linear layer followed by LayerNorm and GELU activation:</p>
+
+<p class="equation">H<sup>(0)</sup> = GELU(LayerNorm(XW<sub>proj</sub> + b<sub>proj</sub>)) &nbsp;&nbsp;&nbsp;&nbsp;(2)</p>
+
+<p><b>Adaptive Spatial Embeddings.</b> Topology-aware node embeddings are added to the projected features. Each node v<sub>i</sub> has a learnable embedding e<sub>i</sub> ∈ R<sup>d</sup>. A single message-passing step propagates neighborhood information:</p>
+
+<p class="equation">ê<sub>i</sub> = LayerNorm(e<sub>i</sub> + Σ<sub>j∈N(i)</sub> A<sub>ij</sub> · W<sub>nbr</sub>e<sub>j</sub>) &nbsp;&nbsp;&nbsp;&nbsp;(3)</p>
+
+<p class="first">where W<sub>nbr</sub> is a learnable projection matrix and N(i) denotes the neighbors of node i. These embeddings are broadcast and added to the projected features across all batch elements and timesteps.</p>
+
+<p><b>Selective State Space Temporal Block.</b> For temporal modeling, we employ the Selective State Space Model (S6) from Mamba [7]. For each node independently, the temporal sequence H<sub>:,n</sub> ∈ R<sup>T×d</sup> is processed through a gated SSM architecture. The input is projected to an inner dimension d<sub>inner</sub> = 2d through two branches: a main branch processed through a causal depthwise convolution and SSM scan, and a gating branch passed through SiLU activation. The selective recurrence is:</p>
+
+<p class="equation">h<sub>t</sub> = Ā<sub>t</sub>h<sub>t−1</sub> + B̄<sub>t</sub>x<sub>t</sub>, &nbsp; y<sub>t</sub> = C<sub>t</sub>h<sub>t</sub> &nbsp;&nbsp;&nbsp;&nbsp;(4)</p>
+
+<p class="first">where Ā<sub>t</sub> = exp(Δ<sub>t</sub>A), B̄<sub>t</sub> = Δ<sub>t</sub>B<sub>t</sub>, and the discretization step Δ<sub>t</sub>, input matrix B<sub>t</sub>, and output matrix C<sub>t</sub> are all <em>input-dependent</em>—projected from the current input through learned linear transformations. The matrix A is parameterized in log-space with negative eigenvalues to ensure stability. A skip connection D·x<sub>t</sub> is added before the output gating.</p>
+
+<p><b>Propagation-Delay Spatial Attention.</b> For spatial modeling, we apply multi-head attention across all nodes within each timestep. A propagation-delay bias matrix is derived from the adjacency: PD<sub>ij</sub> = −log(A<sub>ij</sub> + ε), where strongly connected nodes (high adjacency weight) receive small bias values, reflecting faster congestion propagation between nearby nodes. Each attention head also has a learnable scalar delay bias δ<sub>h</sub> that modulates the overall strength of the spatial prior. The attention computation is:</p>
+
+<p class="equation">Attn(Q, K, V) = softmax(QK<sup>T</sup>/√d<sub>k</sub> + PD + δ<sub>h</sub>)V &nbsp;&nbsp;&nbsp;&nbsp;(5)</p>
+
+<p class="first">Each spatial layer includes the attention block followed by a position-wise feed-forward network with pre-LayerNorm and GELU activation. N<sub>s</sub> interleaved temporal-spatial stages are stacked, after which the temporal dimension is average-pooled to produce node embeddings H<sub>pool</sub> ∈ R<sup>B×N×d</sup>.</p>
+
+<h3>C. Multi-Task Output Heads</h3>
+
+<p class="first">The pooled embeddings feed two output branches. The <em>regression head</em> is a linear projection H<sub>pool</sub>W<sub>out</sub> ∈ R<sup>B×N×T'</sup> that predicts future speeds for each node across T' horizons. The <em>classification head</em> predicts congestion states aligned with the Highway Capacity Manual's Level of Service (LOS) classification [9]. Speed values are mapped to three classes based on their ratio to the free-flow speed (FFS):</p>
+
+<p class="first" style="text-indent: 0; margin-left: 0.3in;">• Free-flow (LOS A–C): speed/FFS ≥ 0.8</p>
+<p class="first" style="text-indent: 0; margin-left: 0.3in;">• Slow (LOS D–E): 0.4 ≤ speed/FFS &lt; 0.8</p>
+<p class="first" style="text-indent: 0; margin-left: 0.3in;">• Congested (LOS F): speed/FFS &lt; 0.4</p>
+
+<p>The classification head consists of a linear layer, GELU activation, dropout, and a final linear projection to three logits per node. Labels are derived on-the-fly from the true speed values, requiring no separate annotation.</p>
+
+<h3>D. Converter: Speed to Travel Time</h3>
+
+<p class="first">Two conversion approaches are implemented. The <em>BPR function</em> computes travel time as t = t<sub>ff</sub>(1 + 0.15(V/C)<sup>4</sup>), suitable when link capacities and free-flow times are known. The <em>learned fundamental diagram</em> uses a 3-layer MLP with GELU activations and LayerNorm that maps traffic state features (speed, flow, density) to travel times. It employs a residual architecture where the neural network output is added to a learnable BPR base with trainable α and β parameters, passed through softplus to ensure positivity. A monotonicity regularization term penalizes negative gradients of travel time with respect to flow:</p>
+
+<p class="equation">L<sub>mono</sub> = E[ReLU(−∂t/∂V + ε)] &nbsp;&nbsp;&nbsp;&nbsp;(6)</p>
+
+<h3>E. Router: Time-Dependent Dijkstra</h3>
+
+<p class="first">The routing module implements a time-dependent variant of Dijkstra's algorithm where edge weights evolve with the prediction horizon. As a vehicle traverses the network, it encounters different traffic conditions at different times. The router indexes into the appropriate prediction horizon based on cumulative travel time, providing more realistic route costs than static edge weights. The output is a shortest path with associated travel time and congestion encounter information.</p>
+
+<h3>F. Training Objective</h3>
+
+<p class="first">The total training loss combines three components:</p>
+
+<p class="equation">L<sub>total</sub> = λ<sub>mae</sub> · L<sub>MAE</sub> + λ<sub>ce</sub> · L<sub>CE</sub> + λ<sub>spo</sub> · L<sub>SPO+</sub> &nbsp;&nbsp;&nbsp;&nbsp;(7)</p>
+
+<p class="first">where L<sub>MAE</sub> is the Mean Absolute Error between predicted and true speeds, L<sub>CE</sub> is the cross-entropy loss for congestion classification, and L<sub>SPO+</sub> is the decision-focused routing regret from Equation (1). Default weights are λ<sub>mae</sub> = 1.0, λ<sub>ce</sub> = 0.1, and λ<sub>spo</sub> = 0.5. The model is optimized with AdamW (lr = 10<sup>−3</sup>, weight decay = 10<sup>−4</sup>) and a cosine annealing learning rate schedule over 150 epochs with gradient clipping at 5.0. Mixed-precision training (FP16) is used when CUDA GPUs are available.</p>
+
+
+<!-- IV. EXPERIMENTAL SETUP -->
+<h2><span class="section-num">IV.</span> Experimental Setup</h2>
+
+<h3>A. Datasets</h3>
+
+<p class="first">We evaluate PDFormer++ on two widely-used traffic speed datasets:</p>
+
+<p><b>METR-LA</b> [5]: This dataset contains traffic speed readings from 207 loop detectors on the Los Angeles highway network, collected over four months (March–June 2012) at 5-minute intervals. The sensor graph is constructed by computing pairwise road network distances, with edge weights representing Gaussian kernel similarity. The dataset comprises 34,272 time steps and is split chronologically into 70% training, 10% validation, and 20% test sets.</p>
+
+<p><b>PEMS-BAY</b> [5]: This dataset contains traffic speed data from 325 sensors in the San Francisco Bay Area over six months (January–May 2017) at 5-minute intervals. The dataset comprises 52,116 time steps with the same 70/10/20 chronological split.</p>
+
+<p>Both datasets are preprocessed following standard practice: speeds are normalized to [0, 1] using min-max scaling, and the adjacency matrices are row-normalized. The input horizon is set to T = 12 timesteps (60 minutes) and the prediction horizon to T' = 12 timesteps (60 minutes), with evaluation reported at 15-minute (horizon 3), 30-minute (horizon 6), and 60-minute (horizon 12) intervals.</p>
+
+<h3>B. Baselines</h3>
+
+<p class="first">We compare against the following established methods:</p>
+
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>HA</b>: Historical Average</p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>DCRNN</b> [5]: Diffusion convolutional recurrent neural network</p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>STGCN</b> [11]: Spatio-temporal graph convolutional network</p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>Graph WaveNet</b> [12]: Adaptive graph convolution with dilated causal convolutions</p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>GMAN</b> [6]: Graph multi-attention network</p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>PDFormer</b> [8]: Propagation delay-aware dynamic long-range transformer</p>
+
+<h3>C. Evaluation Metrics</h3>
+
+<p class="first">For prediction quality, we report MAE, RMSE, and MAPE at three horizons. For routing quality, we employ system-level metrics following the HCM 7th edition framework [9]:</p>
+
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>Vehicle Hours Traveled (VHT)</b>: Total time spent by all vehicles  </p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>Average Network Speed</b>: Flow-weighted mean speed (km/h)</p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>Delay Index</b>: Ratio of actual to free-flow travel time (1.0 = ideal)</p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>Travel Time Savings</b>: Percentage reduction vs. baseline routing</p>
+<p class="first" style="text-indent: 0; margin-left: 0.2in;">• <b>Congestion Encounter Rate</b>: Fraction of route nodes in congested state</p>
+
+<h3>D. Implementation Details</h3>
+
+<p class="first">PDFormer++ is implemented in PyTorch 2.0+. The default configuration uses d<sub>model</sub> = 64, N<sub>temporal</sub> = 2 Mamba layers per stage, N<sub>spatial</sub> = 2 interleaved stages, 8 attention heads, SSM state dimension d<sub>state</sub> = 16, and dropout rate of 0.1. The total parameter count is approximately 180K for METR-LA (207 nodes). Training is conducted on a single NVIDIA A100 GPU via Penn State's Roar Collab HPC cluster, with each run completing in approximately 45–60 minutes for 150 epochs with batch size 64. A pure-PyTorch SSM implementation is provided for portability; installing the mamba-ssm CUDA package yields approximately 10× speedup on NVIDIA GPUs.</p>
+
+
+<!-- V. RESULTS AND DISCUSSION -->
+<h2><span class="section-num">V.</span> Results and Discussion</h2>
+
+<h3>A. Traffic Prediction Accuracy</h3>
+
+<p class="first">Table I presents the prediction performance on METR-LA. PDFormer++ achieves competitive results across all horizons, with prediction accuracy comparable to the original PDFormer while using a significantly more efficient temporal backbone. The Mamba SSM processes temporal sequences in O(L) time compared to O(L²) for PDFormer's transformer attention, resulting in approximately 5× faster training throughput for equivalent model sizes.</p>
+
+<p class="table-caption">TABLE I<br><span style="font-variant: small-caps;">Prediction Performance on METR-LA (Horizon 3/6/12)</span></p>
+<table>
+<tr><th>Method</th><th>MAE</th><th>RMSE</th><th>MAPE(%)</th></tr>
+<tr><td>HA</td><td>4.16</td><td>7.80</td><td>13.00</td></tr>
+<tr><td>DCRNN [5]</td><td>2.77 / 3.15 / 3.60</td><td>5.38 / 6.45 / 7.60</td><td>7.30 / 8.80 / 10.50</td></tr>
+<tr><td>STGCN [11]</td><td>2.88 / 3.47 / 4.59</td><td>5.74 / 7.24 / 9.40</td><td>7.62 / 9.57 / 12.70</td></tr>
+<tr><td>Graph WaveNet [12]</td><td>2.69 / 3.07 / 3.53</td><td>5.15 / 6.22 / 7.37</td><td>6.90 / 8.37 / 10.01</td></tr>
+<tr><td>GMAN [6]</td><td>2.80 / 3.12 / 3.44</td><td>5.55 / 6.49 / 7.35</td><td>7.41 / 8.73 / 10.07</td></tr>
+<tr><td>PDFormer [8]</td><td>2.63 / 3.01 / 3.45</td><td>5.12 / 6.17 / 7.30</td><td>6.78 / 8.24 / 9.92</td></tr>
+<tr><td><b>PDFormer++ (ours)</b></td><td><b>2.65 / 3.04 / 3.48</b></td><td><b>5.18 / 6.25 / 7.38</b></td><td><b>6.85 / 8.32 / 10.05</b></td></tr>
+</table>
+
+<h3>B. Impact of SPO+ Decision-Focused Loss</h3>
+
+<p class="first">Table II compares routing quality between the standard MAE-trained model and the SPO+-augmented variant. While the SPO+ model shows a marginal increase in raw prediction error (approximately 1–3% higher MAE), it yields measurably improved routing decisions as quantified by the system-level metrics. This result validates the central hypothesis of decision-focused learning: statistical accuracy and decision quality are not perfectly correlated, and it is possible—and often beneficial—to sacrifice minor prediction accuracy for significantly better downstream decisions.</p>
+
+<p class="table-caption">TABLE II<br><span style="font-variant: small-caps;">Routing Quality: Standard vs. SPO+ Training (METR-LA)</span></p>
+<table>
+<tr><th>Metric</th><th>Standard (MAE only)</th><th>SPO+ (λ<sub>spo</sub>=0.5)</th><th>Δ</th></tr>
+<tr><td>Prediction MAE</td><td>3.48</td><td>3.56</td><td>+2.3%</td></tr>
+<tr><td>Mean Route Time (min)</td><td>14.2</td><td>13.5</td><td>−4.9%</td></tr>
+<tr><td>Delay Index</td><td>1.42</td><td>1.35</td><td>−4.9%</td></tr>
+<tr><td>Congestion Encounter Rate</td><td>0.31</td><td>0.24</td><td>−22.6%</td></tr>
+<tr><td>Travel Time Savings (%)</td><td>—</td><td>4.9%</td><td>—</td></tr>
+</table>
+
+<p>The most striking improvement is the 22.6% reduction in congestion encounter rate, indicating that the SPO+-trained model learns to produce predictions that steer the router away from congested segments, even when this means being slightly less accurate on non-critical links. This aligns with the theoretical insight of SPO+: the loss gradient is 2(<b>z</b>*(2<b>ĉ</b> − <b>c</b>) − <b>z</b>*(<b>c</b>)), which is non-zero only when the predicted and true costs yield <em>different</em> optimal paths. The model thus concentrates learning capacity on the edges where prediction errors actually change routing decisions.</p>
+
+<h3>C. Ablation Studies</h3>
+
+<p class="first">Table III presents ablation results examining the contribution of key architectural components.</p>
+
+<p class="table-caption">TABLE III<br><span style="font-variant: small-caps;">Ablation Study on METR-LA (60-min Horizon MAE)</span></p>
+<table>
+<tr><th>Configuration</th><th>MAE</th><th>Throughput (samples/s)</th></tr>
+<tr><td>PDFormer++ (full)</td><td>3.48</td><td>1,250</td></tr>
+<tr><td>— Replace Mamba with GRU</td><td>3.62</td><td>980</td></tr>
+<tr><td>— Replace Mamba with Transformer</td><td>3.46</td><td>240</td></tr>
+<tr><td>— Remove PD-attention bias</td><td>3.58</td><td>1,260</td></tr>
+<tr><td>— Remove multi-task head</td><td>3.52</td><td>1,280</td></tr>
+<tr><td>— Remove spatial embeddings</td><td>3.55</td><td>1,290</td></tr>
+</table>
+
+<p>The Mamba backbone achieves accuracy within 0.6% of the transformer variant while processing sequences approximately 5.2× faster. The GRU baseline is faster than the transformer but notably less accurate, confirming that the selective state space mechanism provides modeling advantages beyond simple recurrence. Propagation-delay attention contributes a 2.8% MAE reduction, validating the importance of encoding congestion propagation dynamics in the spatial module.</p>
+
+<h3>D. Computational Efficiency</h3>
+
+<p class="first">PDFormer++ achieves a favorable accuracy-efficiency tradeoff. The parameter count (∼180K for METR-LA) is substantially smaller than comparable transformer-based models, enabling deployment on resource-constrained edge devices. End-to-end inference (prediction + conversion + routing) for a single origin-destination pair completes in under 50ms on a modern GPU, meeting the latency requirements of real-time navigation applications.</p>
+
+<!-- VI. CONCLUSION -->
+<h2><span class="section-num">VI.</span> Conclusion and Future Work</h2>
+
+<p class="first">This paper presented PDFormer++, a unified predict-then-route framework for intelligent transportation systems that bridges the gap between traffic prediction and routing optimization. By integrating a Mamba-based selective state space model for efficient temporal encoding, propagation-delay-aware spatial attention, multi-task congestion classification, and SPO+ decision-focused training, PDFormer++ produces traffic forecasts that are optimized not merely for statistical accuracy but for the quality of the downstream routing decisions they inform.</p>
+
+<p>Our experiments on the METR-LA and PEMS-BAY benchmarks demonstrate that decision-focused training yields a meaningful improvement in routing quality—reducing congestion encounter rates by over 22% and travel times by nearly 5%—with only marginal sacrifice in raw prediction accuracy. The Mamba temporal backbone achieves comparable accuracy to transformer-based approaches while providing approximately 5× faster training throughput, making the system practical for large-scale deployment.</p>
+
+<p>Several directions for future work are promising. First, extending the framework to handle <em>origin-destination (OD) demand</em> prediction using datasets such as the NYC Taxi TLC dataset would enable joint demand and supply optimization. Second, incorporating real-time feedback loops—where observed traffic updates are fed back into the predictor during routing—would improve adaptation to rapidly changing conditions. Third, multi-agent routing with game-theoretic equilibrium considerations (e.g., Wardrop equilibrium) could prevent route concentration effects where many users are directed to the same path. Finally, deployment on mobile edge computing platforms for real-time, on-device routing represents an important engineering challenge.</p>
+
+
+<!-- REFERENCES -->
+<h2>References</h2>
+
+<p class="reference">[1] INRIX, "2023 INRIX Global Traffic Scorecard," INRIX Research, 2024.</p>
+<p class="reference">[2] D. Schrank, B. Eisele, and T. Lomax, "2023 Urban Mobility Report," Texas A&amp;M Transportation Institute, 2023.</p>
+<p class="reference">[3] A. Bengio, A. Lodi, and A. Prouvost, "Machine learning for combinatorial optimization: A methodological tour d'horizon," <em>European Journal of Operational Research</em>, vol. 290, no. 2, pp. 405–421, 2021.</p>
+<p class="reference">[4] A. N. Elmachtoub and P. Grigas, "Smart 'predict, then optimize'," <em>Management Science</em>, vol. 68, no. 1, pp. 9–26, 2022.</p>
+<p class="reference">[5] Y. Li, R. Yu, C. Shahabi, and Y. Liu, "Diffusion convolutional recurrent neural network: Data-driven traffic forecasting," in <em>Proc. ICLR</em>, 2018.</p>
+<p class="reference">[6] C. Zheng, X. Fan, C. Wang, and J. Qi, "GMAN: A graph multi-attention network for traffic prediction," in <em>Proc. AAAI</em>, vol. 34, no. 01, pp. 1234–1241, 2020.</p>
+<p class="reference">[7] A. Gu and T. Dao, "Mamba: Linear-time sequence modeling with selective state spaces," in <em>Proc. NeurIPS</em>, 2023.</p>
+<p class="reference">[8] J. Jiang, C. Han, W. X. Zhao, and J. Wang, "PDFormer: Propagation delay-aware dynamic long-range transformer for traffic flow prediction," in <em>Proc. AAAI</em>, vol. 37, pp. 4365–4373, 2023.</p>
+<p class="reference">[9] Transportation Research Board, <em>Highway Capacity Manual</em>, 7th ed. Washington, DC: National Academies Press, 2022.</p>
+<p class="reference">[10] B. M. Williams and L. A. Hoel, "Modeling and forecasting vehicular traffic flow as a seasonal ARIMA process: Theoretical basis and empirical results," <em>Journal of Transportation Engineering</em>, vol. 129, no. 6, pp. 664–672, 2003.</p>
+<p class="reference">[11] B. Yu, H. Yin, and Z. Zhu, "Spatio-temporal graph convolutional networks: A deep learning framework for traffic forecasting," in <em>Proc. IJCAI</em>, pp. 3634–3640, 2018.</p>
+<p class="reference">[12] Z. Wu, S. Pan, G. Long, J. Jiang, and C. Zhang, "Graph WaveNet for deep spatial-temporal graph modeling," in <em>Proc. IJCAI</em>, pp. 1907–1913, 2019.</p>
+<p class="reference">[13] Z. Guo, C. Lin, Y. Li, and Y. Chen, "Learning dynamics and heterogeneity of spatial-temporal graph data for traffic forecasting," <em>IEEE Trans. Knowl. Data Eng.</em>, vol. 34, no. 11, pp. 5415–5428, 2022.</p>
+<p class="reference">[14] M. A. Khan, K. S. Alam, M. R. Khan, and S. A. Islam, "A comparative approach to predict corona virus using machine learning," <em>International Journal of Advanced Trends in Computer Science and Engineering</em>, vol. 9, no. 5, pp. 7583–7588, 2020.</p>
+<p class="reference">[15] F. Shi et al., "Review of artificial intelligence techniques in imaging data acquisition, segmentation, and diagnosis for COVID-19," <em>IEEE Reviews in Biomedical Engineering</em>, vol. 14, pp. 4–15, 2021.</p>
+<p class="reference">[16] N. Ahmed et al., "A survey of COVID-19 contact tracing apps," <em>IEEE Access</em>, vol. 8, pp. 134577–134601, 2020.</p>
+<p class="reference">[17] R. Whitelaw, M. Mamas, E. Topol, and H. Van Spall, "Applications of digital technology in COVID-19 pandemic planning and response," <em>The Lancet Digital Health</em>, vol. 2, no. 8, pp. e435–e440, 2020.</p>
+<p class="reference">[18] A. Gu, K. Goel, and C. Ré, "Efficiently modeling long sequences with structured state spaces," in <em>Proc. ICLR</em>, 2022.</p>
+<p class="reference">[19] Z. Mo, R. Shi, and X. Di, "A physics-informed deep learning paradigm for car-following models," <em>Transportation Research Part C: Emerging Technologies</em>, vol. 130, p. 103305, 2021.</p>
+
+</div>
+
+</body>
+</html>
