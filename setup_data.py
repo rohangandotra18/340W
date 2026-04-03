@@ -113,6 +113,9 @@ def build_adj_from_distances(csv_path: str, n_nodes: int = 207) -> np.ndarray:
         if w > 0.1:
             adj[id2idx[u], id2idx[v]] = w
             adj[id2idx[v], id2idx[u]] = w
+    # Crop to n_nodes if the CSV has more sensors than the data
+    if N > n_nodes:
+        adj = adj[:n_nodes, :n_nodes]
     row_sum = adj.sum(axis=1, keepdims=True).clip(min=1e-6)
     return adj / row_sum
 
@@ -200,8 +203,8 @@ def main():
         print("\n[ Download failed — generating synthetic data ]")
         print("  (Synthetic data lets the pipeline run; swap real data for benchmarks)")
         data_arr, adj_arr_syn = generate_synthetic_metr_la()
-        if adj_arr is None:
-            adj_arr = adj_arr_syn
+        # Always use synthetic adj with synthetic data to ensure shape match
+        adj_arr = adj_arr_syn
 
     # ── Save ──────────────────────────────────────────────────────────────────
     print(f"\n[ Saving ]")
@@ -228,8 +231,9 @@ Ready. Run the smoke test:
   python train.py \\
     --data_path data/metr-la.npz \\
     --adj_path  data/adj_metr_la.npz \\
-    --n_nodes 207 --in_channels 1 \\
+    --in_channels 1 \\
     --epochs 5 --batch_size 16 \\
+    --num_workers 0 \\
     --output_dir ./checkpoints/test
 """)
 
