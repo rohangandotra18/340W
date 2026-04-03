@@ -194,31 +194,34 @@ Compares Mamba vs GRU vs Transformer speed, SPO+ routing quality vs standard los
 ### 1. SSH in and clone
 
 ```bash
-ssh rjg6014@submit.hpc.psu.edu     # replace rjg6014 with your PSU ID
+ssh rjg6014@submit.hpc.psu.edu
 git clone https://github.com/rohangandotra18/340W.git
 cd 340W
 ```
 
 ### 2. Set up your Python environment
 
+> **Note:** Home directory space is limited (~10GB). Install the venv in `/storage/work/` which has more quota.
+
 ```bash
 module load python/3.11.2
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv /storage/work/rjg6014/pdformer_venv
+source /storage/work/rjg6014/pdformer_venv/bin/activate
+pip install --no-cache-dir --upgrade pip
+pip install --no-cache-dir 'numpy<2' torch networkx scipy pyyaml
 ```
 
 ### 3. Download data on the login node
 
 ```bash
+cd ~/340W
 python setup_data.py
 ```
 
 ### 4. Create and submit a GPU job
 
-Save this as `submit_train.sh` in the repo root:
-
 ```bash
+cat > ~/340W/submit_train.sh << 'EOF'
 #!/bin/bash
 #SBATCH --job-name=pdformerpp
 #SBATCH --nodes=1
@@ -226,10 +229,13 @@ Save this as `submit_train.sh` in the repo root:
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32GB
 #SBATCH --gpus=1
-#SBATCH --time=04:00:00
-#SBATCH --partition=sla-prio        # change to 'open' if no allocation
+#SBATCH --time=02:00:00
+#SBATCH --partition=open
+#SBATCH --output=train_%j.log
+#SBATCH --error=train_%j.err
 
-source ~/340W/venv/bin/activate
+module load python/3.11.2
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 cd ~/340W
 
 python train.py \
@@ -240,13 +246,14 @@ python train.py \
   --epochs     150 \
   --batch_size 64 \
   --output_dir ./checkpoints/metr_la
+EOF
 ```
 
-Submit it:
+Submit and monitor:
 
 ```bash
-sbatch submit_train.sh
-squeue -u abc1234     # watch job status
+sbatch ~/340W/submit_train.sh
+squeue -u rjg6014     # watch job status
 ```
 
 Expected runtime: **~45–60 minutes** on a single A100.
