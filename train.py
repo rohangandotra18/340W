@@ -1,6 +1,7 @@
+"""PDFormer++ training script module docstring."""
+from __future__ import annotations
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-from __future__ import annotations
 """
 Training script for PDFormer++.
 
