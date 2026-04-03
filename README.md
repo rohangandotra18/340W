@@ -159,12 +159,13 @@ Reports MAE / RMSE / MAPE at 15, 30, and 60-minute horizons, plus congestion F1 
 
 ```python
 import torch
+import numpy as np
 from pipeline import TrafficTransformerPipeline
 
 pipeline = TrafficTransformerPipeline(
     checkpoint_path="checkpoints/metr_la/best_model.pt",
     edges=[(i, i + 1) for i in range(206)],   # simple chain for METR-LA
-    link_lengths_km=[1.0] * 206,
+    link_lengths_km=np.array([1.0] * 206),
 )
 
 # x: (1, 12, 207, 1)  —  1 sample, 12 past timesteps, 207 nodes, 1 feature
