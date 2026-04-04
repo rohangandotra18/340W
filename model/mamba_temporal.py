@@ -125,7 +125,7 @@ class SelectiveSSM(nn.Module):
         A = -torch.exp(self.A_log)  # (d_inner, d_state)
 
         y = self._ssm_scan(x_conv, delta, A, B_mat, C_mat)
-        y = y + x_conv * self.D  # skip connection
+        y = y + x_conv * self.D.to(y.dtype)  # skip connection (keep float16 under AMP)
         y = y * F.silu(z)  # gating
 
         return self.out_proj(y) + residual

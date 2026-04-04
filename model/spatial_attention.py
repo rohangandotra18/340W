@@ -80,7 +80,8 @@ class PropagationDelayAttention(nn.Module):
 
         # Attention with propagation-delay bias
         scores = torch.matmul(Q, K.transpose(-2, -1)) * self.scale  # (B, H, N, N)
-        scores = scores + spatial_bias.unsqueeze(0) + self.delay_bias  # broadcast
+        # Cast biases to scores dtype to avoid float32 promotion under AMP
+        scores = scores + spatial_bias.unsqueeze(0).to(scores.dtype) + self.delay_bias.to(scores.dtype)
 
         attn = F.softmax(scores, dim=-1)
         attn = self.attn_drop(attn)
