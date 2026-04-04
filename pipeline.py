@@ -15,18 +15,17 @@ Usage:
     result = pipeline.route(x_tensor, adj_tensor, origin=0, destination=100)
     print(result["path"], result["travel_time_min"])
 """
+
 from __future__ import annotations
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
-from typing import List, Optional, Tuple
-
-import numpy as np
-import torch
-
-from model.pdformer_plus import PDFormerPlusPlus
-from routing.bpr_converter import speed_to_travel_time
 from routing.dijkstra_router import TimeDependentRouter
+from routing.bpr_converter import speed_to_travel_time
+from model.pdformer_plus import PDFormerPlusPlus
+import torch
+import numpy as np
+from typing import List, Optional, Tuple
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
 class TrafficTransformerPipeline:
@@ -56,7 +55,9 @@ class TrafficTransformerPipeline:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
         self.edges = edges
-        self.link_lengths = torch.from_numpy(np.asarray(link_lengths_km, dtype=np.float32))
+        self.link_lengths = torch.from_numpy(
+            np.asarray(link_lengths_km, dtype=np.float32)
+        )
         self.link_capacities = (
             torch.from_numpy(np.asarray(link_capacities, dtype=np.float32))
             if link_capacities is not None
@@ -80,7 +81,9 @@ class TrafficTransformerPipeline:
         ).to(self.device)
         # Handle models trained with torch.compile()
         state_dict = ckpt["model_state_dict"]
-        uncompiled_state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
+        uncompiled_state_dict = {
+            k.replace("_orig_mod.", ""): v for k, v in state_dict.items()
+        }
         self.model.load_state_dict(uncompiled_state_dict)
         self.model.eval()
 
@@ -108,7 +111,7 @@ class TrafficTransformerPipeline:
         """
         if x.dim() == 3:
             x = x.unsqueeze(0)
-        x   = x.to(self.device)
+        x = x.to(self.device)
         adj = adj.to(self.device)
 
         # Normalise input features using training set statistics
@@ -121,7 +124,7 @@ class TrafficTransformerPipeline:
         speed_pred = speed_pred * self.scaler_std + self.scaler_mean
 
         return {
-            "speed_pred": speed_pred,                                             # (N, T')
+            "speed_pred": speed_pred,  # (N, T')
             "congestion": out["congestion"].squeeze(0).argmax(-1).cpu().numpy(),  # (N,)
         }
 
@@ -146,7 +149,7 @@ class TrafficTransformerPipeline:
         speeds_t = torch.from_numpy(speeds)  # (N, T')
 
         for i, (u, v) in enumerate(self.edges):
-            edge_speed = (speeds_t[u] + speeds_t[v]) / 2.0   # (T',)
+            edge_speed = (speeds_t[u] + speeds_t[v]) / 2.0  # (T',)
             edge_speed = edge_speed.clamp(min=1.0)
             tt = speed_to_travel_time(edge_speed, self.link_lengths[i])  # (T',)
             travel_times[:, i] = tt.numpy()
@@ -179,23 +182,24 @@ class TrafficTransformerPipeline:
             speed_pred:        (N, T') raw speed predictions
         """
         pred = self.predict(x, adj)
-        travel_times = self._speeds_to_edge_times(pred["speed_pred"])   # (T', n_edges)
+        travel_times = self._speeds_to_edge_times(pred["speed_pred"])  # (T', n_edges)
 
         if time_dependent:
-            path, cost = self.router.time_dependent_route(origin, destination, travel_times)
+            path, cost = self.router.time_dependent_route(
+                origin, destination, travel_times
+            )
         else:
             mean_times = travel_times.mean(axis=0)
             self.router.build_graph(mean_times)
             path, cost = self.router.route(origin, destination)
 
         path_congestion = [
-            self.CONGESTION_LABELS[int(pred["congestion"][n])]
-            for n in path
+            self.CONGESTION_LABELS[int(pred["congestion"][n])] for n in path
         ]
 
         return {
-            "path":              path,
-            "travel_time_min":   cost,
+            "path": path,
+            "travel_time_min": cost,
             "congestion_labels": path_congestion,
-            "speed_pred":        pred["speed_pred"],
+            "speed_pred": pred["speed_pred"],
         }

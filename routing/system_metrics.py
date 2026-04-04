@@ -8,9 +8,10 @@ Metrics follow the evaluation framework described in:
     - Highway Capacity Manual (HCM 7th ed.)
     - Transportation Research Part C standards
 """
+
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -84,7 +85,9 @@ def compute_travel_time_savings(
         savings_vs_baseline: % reduction relative to baseline
         delay_index:         predicted / free-flow  (1.0 = ideal)
     """
-    savings = max(0.0, (baseline_cost - predicted_cost) / max(baseline_cost, 1e-6)) * 100.0
+    savings = (
+        max(0.0, (baseline_cost - predicted_cost) / max(baseline_cost, 1e-6)) * 100.0
+    )
     delay = predicted_cost / max(freeflow_cost, 1e-6)
     return {
         "savings_vs_baseline_pct": round(savings, 2),

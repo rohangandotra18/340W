@@ -11,9 +11,10 @@ Reference:
 When PyEPO is installed the official implementation is used;
 otherwise a self-contained surrogate is provided.
 """
+
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -23,7 +24,8 @@ import torch.nn as nn
 # Attempt to import PyEPO; fall back to built-in surrogate.
 # ---------------------------------------------------------------------------
 try:
-    from pyepo.func import SPOPlus as _PyEPO_SPOPlus
+    pass
+
     _HAS_PYEPO = True
 except ImportError:
     _HAS_PYEPO = False
@@ -32,6 +34,7 @@ except ImportError:
 # ============================================================================
 #  Built-in SPO+ surrogate (no external dependency)
 # ============================================================================
+
 
 class _SPOPlusSurrogate(torch.autograd.Function):
     """
@@ -49,10 +52,10 @@ class _SPOPlusSurrogate(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
-        pred_costs: torch.Tensor,          # (B, n_edges)
-        true_costs: torch.Tensor,          # (B, n_edges)
-        oracle_solutions: torch.Tensor,    # (B, n_edges)  binary path indicator
-        surrogate_solver,                  # callable(cost_vector) -> solution
+        pred_costs: torch.Tensor,  # (B, n_edges)
+        true_costs: torch.Tensor,  # (B, n_edges)
+        oracle_solutions: torch.Tensor,  # (B, n_edges)  binary path indicator
+        surrogate_solver,  # callable(cost_vector) -> solution
     ) -> torch.Tensor:
         B = pred_costs.shape[0]
         device = pred_costs.device
@@ -98,6 +101,7 @@ class _SPOPlusSurrogate(torch.autograd.Function):
 #  Shortest-path solver wrapper (for SPO+ surrogate calls)
 # ============================================================================
 
+
 class ShortestPathSolver:
     """
     Wraps a graph's edge list to solve shortest-path via Dijkstra.
@@ -111,7 +115,8 @@ class ShortestPathSolver:
         origin: int,
         destination: int,
     ):
-        import heapq
+        pass
+
         self.edges = edges
         self.n_nodes = n_nodes
         self.origin = origin
@@ -124,6 +129,7 @@ class ShortestPathSolver:
     def __call__(self, costs: np.ndarray) -> np.ndarray:
         """Solve shortest path and return binary edge-indicator vector."""
         import heapq
+
         INF = float("inf")
         dist = {i: INF for i in range(self.n_nodes)}
         dist[self.origin] = 0.0
@@ -164,6 +170,7 @@ class ShortestPathSolver:
 # ============================================================================
 #  Public API: SPO+ Traffic Loss
 # ============================================================================
+
 
 class SPOPlusTrafficLoss(nn.Module):
     """
@@ -227,8 +234,8 @@ class SPOPlusTrafficLoss(nn.Module):
 
     def forward(
         self,
-        speed_pred: torch.Tensor,         # (B, T', N)
-        speed_true: torch.Tensor,         # (B, T', N)
+        speed_pred: torch.Tensor,  # (B, T', N)
+        speed_true: torch.Tensor,  # (B, T', N)
         congestion_logits: torch.Tensor,  # (B, N, n_classes)
     ) -> dict:
         from model.multitask_head import compute_congestion_labels
@@ -268,11 +275,7 @@ class SPOPlusTrafficLoss(nn.Module):
             pred_costs, true_costs, oracle_solutions, self.solver
         )
 
-        total = (
-            self.lambda_mae * mae
-            + self.lambda_ce * ce
-            + self.lambda_spo * spo_loss
-        )
+        total = self.lambda_mae * mae + self.lambda_ce * ce + self.lambda_spo * spo_loss
 
         return {
             "total": total,

@@ -14,6 +14,7 @@ References:
   Mamba (S6)  — Gu & Dao, NeurIPS 2023
   SPO+        — Elmachtoub & Grigas, Management Science 2022
 """
+
 import torch
 import torch.nn as nn
 
@@ -68,14 +69,18 @@ class PDFormerPlusPlus(nn.Module):
 
         # --- Interleaved temporal (Mamba) + spatial (PD-Attention) blocks ---
         # Each "stage" = one Mamba block + one spatial transformer layer
-        self.temporal_blocks = nn.ModuleList([
-            MambaTemporalBlock(d_model, n_layers=n_temporal_layers, d_state=d_state)
-            for _ in range(n_spatial_layers)
-        ])
-        self.spatial_blocks = nn.ModuleList([
-            SpatialTransformerLayer(d_model, n_heads=n_heads, dropout=dropout)
-            for _ in range(n_spatial_layers)
-        ])
+        self.temporal_blocks = nn.ModuleList(
+            [
+                MambaTemporalBlock(d_model, n_layers=n_temporal_layers, d_state=d_state)
+                for _ in range(n_spatial_layers)
+            ]
+        )
+        self.spatial_blocks = nn.ModuleList(
+            [
+                SpatialTransformerLayer(d_model, n_heads=n_heads, dropout=dropout)
+                for _ in range(n_spatial_layers)
+            ]
+        )
 
         self.final_norm = nn.LayerNorm(d_model)
 
@@ -106,7 +111,7 @@ class PDFormerPlusPlus(nn.Module):
         −log(adj) makes strong connections (high weight) → small bias,
         matching the intuition that nearby nodes propagate congestion faster.
         """
-        return -torch.log(adj.clamp(min=1e-6))   # (N, N)
+        return -torch.log(adj.clamp(min=1e-6))  # (N, N)
 
     # ------------------------------------------------------------------
     def forward(self, x: torch.Tensor, adj: torch.Tensor) -> dict:
@@ -127,10 +132,10 @@ class PDFormerPlusPlus(nn.Module):
 
         # Add topology-aware spatial embeddings (broadcast over B, T)
         node_ids = torch.arange(N, device=x.device)
-        h = h + self.spatial_embed(node_ids, adj)   # (N, d_model) → broadcast
+        h = h + self.spatial_embed(node_ids, adj)  # (N, d_model) → broadcast
 
         # Precompute spatial bias
-        sp_bias = self._spatial_bias(adj)            # (N, N)
+        sp_bias = self._spatial_bias(adj)  # (N, N)
 
         # Interleaved temporal ↔ spatial encoding
         for temp_block, spat_block in zip(self.temporal_blocks, self.spatial_blocks):
@@ -146,7 +151,7 @@ class PDFormerPlusPlus(nn.Module):
             h_s = spat_block(h_s, sp_bias)
             h = h_s.reshape(B, T, N, self.d_model)
 
-        h = self.final_norm(h)                       # (B, T, N, d_model)
+        h = self.final_norm(h)  # (B, T, N, d_model)
 
         # Time-pool: average over input horizon → (B, N, d_model)
         h_pool = h.mean(dim=1)
@@ -158,7 +163,7 @@ class PDFormerPlusPlus(nn.Module):
         head_out = self.head(h_pool)
 
         return {
-            "speed_pred": speed_pred,            # (B, N, T')
+            "speed_pred": speed_pred,  # (B, N, T')
             "congestion": head_out["congestion"],  # (B, N, n_classes)
-            "embed": h_pool,                      # (B, N, d_model)
+            "embed": h_pool,  # (B, N, d_model)
         }

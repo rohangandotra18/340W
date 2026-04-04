@@ -8,6 +8,7 @@ Two modes:
   route()                — standard Dijkstra on a single travel-time snapshot
   time_dependent_route() — TD-Dijkstra where edge weights vary per future timestep
 """
+
 import heapq
 from typing import Dict, List, Optional, Tuple
 
@@ -28,7 +29,9 @@ class TimeDependentRouter:
     def __init__(self, edges: List[Tuple[int, int]], n_nodes: Optional[int] = None):
         self.edges = edges
         self.n_nodes = n_nodes or (max(max(u, v) for u, v in edges) + 1)
-        self.edge_index: Dict[Tuple[int, int], int] = {(u, v): i for i, (u, v) in enumerate(edges)}
+        self.edge_index: Dict[Tuple[int, int], int] = {
+            (u, v): i for i, (u, v) in enumerate(edges)
+        }
 
         # Adjacency list for TD-Dijkstra
         self.adj: Dict[int, List[int]] = {i: [] for i in range(self.n_nodes)}
@@ -68,7 +71,9 @@ class TimeDependentRouter:
             return [], float("inf")
 
     # ------------------------------------------------------------------
-    def batch_route(self, od_pairs: List[Tuple[int, int]]) -> List[Tuple[List[int], float]]:
+    def batch_route(
+        self, od_pairs: List[Tuple[int, int]]
+    ) -> List[Tuple[List[int], float]]:
         """Route multiple OD pairs. Requires build_graph() first."""
         return [self.route(o, d) for o, d in od_pairs]
 
@@ -77,7 +82,7 @@ class TimeDependentRouter:
         self,
         origin: int,
         destination: int,
-        travel_times_per_horizon: np.ndarray,   # (T', n_edges)
+        travel_times_per_horizon: np.ndarray,  # (T', n_edges)
         departure_step: int = 0,
         step_minutes: float = 5.0,
     ) -> Tuple[List[int], float]:
@@ -146,7 +151,7 @@ class TimeDependentRouter:
         self,
         pred_path: List[int],
         pred_cost: float,
-        true_travel_times: np.ndarray,   # (n_edges,) ground-truth
+        true_travel_times: np.ndarray,  # (n_edges,) ground-truth
         oracle_cost: float,
     ) -> dict:
         """
@@ -157,7 +162,10 @@ class TimeDependentRouter:
             - congestion_encounter_rate: fraction of path edges in congested state
         """
         if not pred_path or oracle_cost == 0.0:
-            return {"path_optimality_ratio": float("inf"), "congestion_encounter_rate": 0.0}
+            return {
+                "path_optimality_ratio": float("inf"),
+                "congestion_encounter_rate": 0.0,
+            }
 
         # Actual travel time on predicted path using true weights
         actual_cost = 0.0

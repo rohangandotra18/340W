@@ -9,7 +9,6 @@ Standard LibCity preprocessed files match this layout exactly.
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
@@ -74,24 +73,24 @@ class TrafficDataset(Dataset):
 
         # ── time split ───────────────────────────────────────────────────
         train_end = int(T * train_ratio)
-        val_end   = int(T * (train_ratio + val_ratio))
+        val_end = int(T * (train_ratio + val_ratio))
         slices = {"train": slice(0, train_end),
-                  "val":   slice(train_end, val_end),
-                  "test":  slice(val_end, None)}
+                  "val": slice(train_end, val_end),
+                  "test": slice(val_end, None)}
         assert split in slices, f"split must be 'train', 'val', or 'test'; got '{split}'"
 
         # ── normalisation (fit on train, apply everywhere) ───────────────
         if normalize:
             train_data = raw[:train_end]
             self.mean: np.ndarray = train_data.mean(axis=(0, 1), keepdims=True)   # (1,1,C)
-            self.std: np.ndarray  = train_data.std(axis=(0, 1), keepdims=True).clip(min=1e-6)
+            self.std: np.ndarray = train_data.std(axis=(0, 1), keepdims=True).clip(min=1e-6)
             raw = (raw - self.mean) / self.std
         else:
             self.mean = np.zeros((1, 1, C), dtype=np.float32)
-            self.std  = np.ones( (1, 1, C), dtype=np.float32)
+            self.std = np.ones((1, 1, C), dtype=np.float32)
 
         self._mean_t = torch.from_numpy(self.mean)
-        self._std_t  = torch.from_numpy(self.std)
+        self._std_t = torch.from_numpy(self.std)
 
         # ── build sliding windows ─────────────────────────────────────────
         data_split = raw[slices[split]]
@@ -99,8 +98,8 @@ class TrafficDataset(Dataset):
         self._X: list[np.ndarray] = []
         self._Y: list[np.ndarray] = []
         for i in range(len(data_split) - window + 1):
-            self._X.append(data_split[i : i + in_horizon])                         # (in_T, N, C)
-            self._Y.append(data_split[i + in_horizon : i + window, :, 0])         # (out_T, N) speed
+            self._X.append(data_split[i: i + in_horizon])                         # (in_T, N, C)
+            self._Y.append(data_split[i + in_horizon: i + window, :, 0])         # (out_T, N) speed
 
         # Pre-stack for faster __getitem__
         self._X_arr = np.stack(self._X, axis=0)   # (S, in_T, N, C)
@@ -122,5 +121,5 @@ class TrafficDataset(Dataset):
         y: (..., N) or (B, T', N)
         """
         mean = self._mean_t[..., 0].to(y.device)   # (1,1) or (1,)
-        std  = self._std_t[..., 0].to(y.device)
+        std = self._std_t[..., 0].to(y.device)
         return y * std + mean

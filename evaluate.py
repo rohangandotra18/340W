@@ -14,22 +14,23 @@ Usage:
         --data_path  /path/to/metr-la.npz \
         --adj_path   /path/to/adj_metr_la.npz
 """
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-import argparse
 
-import numpy as np
-import torch
-from torch.utils.data import DataLoader
-
-from data.traffic_dataset import TrafficDataset
-from model.pdformer_plus import PDFormerPlusPlus
 from model.multitask_head import compute_congestion_labels
+from model.pdformer_plus import PDFormerPlusPlus
+from data.traffic_dataset import TrafficDataset
+from torch.utils.data import DataLoader
+import torch
+import argparse
+import os
 
-HORIZONS_STEPS = [3, 6, 12]   # 5-min steps → 15 / 30 / 60 min
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+
+HORIZONS_STEPS = [3, 6, 12]  # 5-min steps → 15 / 30 / 60 min
 
 
 # ── Prediction metrics ───────────────────────────────────────────────────────
+
 
 @torch.no_grad()
 def evaluate_prediction(
@@ -45,20 +46,19 @@ def evaluate_prediction(
     all_pred: list[torch.Tensor] = []
     all_true: list[torch.Tensor] = []
     all_cong_pred: list[torch.Tensor] = []
-    all_cong_true: list[torch.Tensor] = []
 
     for x, y in loader:
         x = x.to(device, non_blocking=True)
         with torch.amp.autocast("cuda", enabled=device.type == "cuda"):
             out = model(x, adj)
-        speed_pred = out["speed_pred"].permute(0, 2, 1).cpu()   # (B, T', N)
-        cong_logits = out["congestion"].cpu()                     # (B, N, n_cls)
+        speed_pred = out["speed_pred"].permute(0, 2, 1).cpu()  # (B, T', N)
+        cong_logits = out["congestion"].cpu()  # (B, N, n_cls)
 
         all_pred.append(speed_pred)
         all_true.append(y)
 
         # Congestion predictions and labels
-        cong_pred = cong_logits.argmax(dim=-1)                   # (B, N)
+        cong_pred = cong_logits.argmax(dim=-1)  # (B, N)
         all_cong_pred.append(cong_pred)
 
     pred = torch.cat(all_pred, dim=0)
@@ -77,14 +77,14 @@ def evaluate_prediction(
             continue
         p = pred[:, h - 1, :]
         t = true[:, h - 1, :]
-        mae  = (p - t).abs().mean().item()
+        mae = (p - t).abs().mean().item()
         rmse = ((p - t) ** 2).mean().sqrt().item()
         mape = ((p - t).abs() / t.clamp(min=1e-6)).mean().item() * 100.0
         label = f"{h * 5} min"
         print(f"{label:<12} {mae:>10.4f} {rmse:>10.4f} {mape:>11.2f}%")
 
     # Overall
-    mae  = (pred - true).abs().mean().item()
+    mae = (pred - true).abs().mean().item()
     rmse = ((pred - true) ** 2).mean().sqrt().item()
     mape = ((pred - true).abs() / true.clamp(min=1e-6)).mean().item() * 100.0
     print("─" * 48)
@@ -112,7 +112,9 @@ def evaluate_prediction(
         recall = tp / max(tp + fn, 1)
         f1 = 2 * precision * recall / max(precision + recall, 1e-6)
 
-        print(f"{class_names[c]:<14} {precision:>10.4f} {recall:>10.4f} {f1:>10.4f} {support:>10d}")
+        print(
+            f"{class_names[c]:<14} {precision:>10.4f} {recall:>10.4f} {f1:>10.4f} {support:>10d}"
+        )
         total_tp += tp
         total_fp += fp
         total_fn += fn
@@ -125,11 +127,12 @@ def evaluate_prediction(
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+
 def main(args: argparse.Namespace) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     ckpt = torch.load(args.checkpoint, map_location=device)
-    a    = ckpt["args"]
+    a = ckpt["args"]
 
     test_ds = TrafficDataset(
         data_path=args.data_path,
@@ -138,8 +141,10 @@ def main(args: argparse.Namespace) -> None:
         out_horizon=a["out_horizon"],
         split="test",
     )
-    loader = DataLoader(test_ds, batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
-    adj    = test_ds.adj.to(device)
+    loader = DataLoader(
+        test_ds, batch_size=64, shuffle=False, num_workers=4, pin_memory=True
+    )
+    adj = test_ds.adj.to(device)
 
     model = PDFormerPlusPlus(
         n_nodes=a["n_nodes"],
@@ -155,9 +160,13 @@ def main(args: argparse.Namespace) -> None:
 
     # Handle models trained with torch.compile() by stripping the _orig_mod. prefix
     state_dict = ckpt["model_state_dict"]
-    uncompiled_state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
+    uncompiled_state_dict = {
+        k.replace("_orig_mod.", ""): v for k, v in state_dict.items()
+    }
     model.load_state_dict(uncompiled_state_dict)
-    print(f"Loaded checkpoint from epoch {ckpt['epoch']}  (Val MAE {ckpt['val_mae']:.4f})")
+    print(
+        f"Loaded checkpoint from epoch {ckpt['epoch']}  (Val MAE {ckpt['val_mae']:.4f})"
+    )
 
     ffs = a.get("ffs", args.ffs)
     evaluate_prediction(model, loader, adj, device, test_ds, ffs=ffs)
@@ -166,7 +175,9 @@ def main(args: argparse.Namespace) -> None:
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--checkpoint", required=True)
-    p.add_argument("--data_path",  required=True)
-    p.add_argument("--adj_path",   default=None)
-    p.add_argument("--ffs",        type=float, default=65.0, help="Free-flow speed for congestion labels")
+    p.add_argument("--data_path", required=True)
+    p.add_argument("--adj_path", default=None)
+    p.add_argument(
+        "--ffs", type=float, default=65.0, help="Free-flow speed for congestion labels"
+    )
     main(p.parse_args())

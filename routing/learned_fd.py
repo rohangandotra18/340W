@@ -14,6 +14,7 @@ Key design choices:
     • Physics warm-start: initialised to approximate BPR(α=0.15, β=4)
     • Can be jointly trained with PDFormer++ or pretrained separately
 """
+
 from __future__ import annotations
 
 import torch
@@ -106,9 +107,7 @@ class LearnedFundamentalDiagram(nn.Module):
         """
         x_reg = x.detach().requires_grad_(True)
         t = self.forward(x_reg)
-        grad = torch.autograd.grad(
-            t.sum(), x_reg, create_graph=True
-        )[0]
+        grad = torch.autograd.grad(t.sum(), x_reg, create_graph=True)[0]
 
         # Gradient w.r.t. flow (feature index 1, or 0 if only 1 feature)
         flow_idx = min(1, x.shape[-1] - 1)

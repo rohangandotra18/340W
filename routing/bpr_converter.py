@@ -8,6 +8,7 @@ BPR (Bureau of Public Roads):
 Speed → travel time:
     t = (length / speed) × 60   [minutes]
 """
+
 import torch
 
 

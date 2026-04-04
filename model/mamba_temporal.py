@@ -4,6 +4,7 @@ No custom CUDA kernels required; works on any device.
 For maximum throughput on A100, install mamba-ssm and swap SelectiveSSM
 with the official MambaBlock from that package.
 """
+
 import math
 import torch
 import torch.nn as nn
@@ -34,8 +35,12 @@ class SelectiveSSM(nn.Module):
 
         # Depth-wise causal conv for local context (kernel=3, causal via padding)
         self.conv1d = nn.Conv1d(
-            self.d_inner, self.d_inner, kernel_size=3,
-            padding=2, groups=self.d_inner, bias=True,
+            self.d_inner,
+            self.d_inner,
+            kernel_size=3,
+            padding=2,
+            groups=self.d_inner,
+            bias=True,
         )
 
         # Selective parameters: Δ, B, C projected from x
@@ -44,14 +49,19 @@ class SelectiveSSM(nn.Module):
 
         # Initialise dt_proj bias so Δ ~ Uniform(0.001, 0.1) after softplus
         dt_init = torch.exp(
-            torch.rand(self.d_inner) * (math.log(0.1) - math.log(0.001)) + math.log(0.001)
+            torch.rand(self.d_inner) * (math.log(0.1) - math.log(0.001))
+            + math.log(0.001)
         )
         inv_dt = dt_init + torch.log(-torch.expm1(-dt_init))
         with torch.no_grad():
             self.dt_proj.bias.copy_(inv_dt)
 
         # A (log-parameterised to keep eigenvalues negative)
-        A = torch.arange(1, d_state + 1, dtype=torch.float).unsqueeze(0).expand(self.d_inner, -1)
+        A = (
+            torch.arange(1, d_state + 1, dtype=torch.float)
+            .unsqueeze(0)
+            .expand(self.d_inner, -1)
+        )
         self.A_log = nn.Parameter(torch.log(A))
 
         # D: skip / residual weight
@@ -63,27 +73,31 @@ class SelectiveSSM(nn.Module):
     # ------------------------------------------------------------------
     def _ssm_scan(
         self,
-        x: torch.Tensor,       # (B, L, d_inner)
-        delta: torch.Tensor,   # (B, L, d_inner)
-        A: torch.Tensor,       # (d_inner, d_state)
-        B: torch.Tensor,       # (B, L, d_state)
-        C: torch.Tensor,       # (B, L, d_state)
+        x: torch.Tensor,  # (B, L, d_inner)
+        delta: torch.Tensor,  # (B, L, d_inner)
+        A: torch.Tensor,  # (d_inner, d_state)
+        B: torch.Tensor,  # (B, L, d_state)
+        C: torch.Tensor,  # (B, L, d_state)
     ) -> torch.Tensor:
         """Selective recurrence scan. Returns (B, L, d_inner)."""
         B_sz, L, d_inner = x.shape
         d_state = A.shape[-1]
 
-        delta = F.softplus(delta)                                          # (B, L, d_inner)
-        dA = torch.exp(delta.unsqueeze(-1) * A)                           # (B, L, d_inner, d_state)
-        dB = delta.unsqueeze(-1) * B.unsqueeze(2)                         # (B, L, d_inner, d_state)
+        delta = F.softplus(delta)  # (B, L, d_inner)
+        # Cast A to match input dtype so dA/dB stay in float16 under AMP.
+        # exp(delta*A) is safe in float16: A<0 and delta>0 so the product is
+        # negative and exp maps it to (0,1], well within float16 range.
+        A = A.to(x.dtype)
+        dA = torch.exp(delta.unsqueeze(-1) * A)  # (B, L, d_inner, d_state)
+        dB = delta.unsqueeze(-1) * B.unsqueeze(2)  # (B, L, d_inner, d_state)
 
         h = x.new_zeros(B_sz, d_inner, d_state)
         ys = []
         for t in range(L):
-            h = dA[:, t] * h + dB[:, t] * x[:, t].unsqueeze(-1)          # (B, d_inner, d_state)
-            ys.append((h * C[:, t].unsqueeze(1)).sum(-1))                  # (B, d_inner)
+            h = dA[:, t] * h + dB[:, t] * x[:, t].unsqueeze(-1)  # (B, d_inner, d_state)
+            ys.append((h * C[:, t].unsqueeze(1)).sum(-1))  # (B, d_inner)
 
-        return torch.stack(ys, dim=1)                                      # (B, L, d_inner)
+        return torch.stack(ys, dim=1)  # (B, L, d_inner)
 
     # ------------------------------------------------------------------
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -92,23 +106,27 @@ class SelectiveSSM(nn.Module):
         x = self.norm(x)
 
         # Gated projection
-        xz = self.in_proj(x)                                               # (B, L, 2·d_inner)
+        xz = self.in_proj(x)  # (B, L, 2·d_inner)
         x_in, z = xz.chunk(2, dim=-1)
 
         # Causal conv  (trim right padding to preserve causality)
-        x_conv = self.conv1d(x_in.transpose(1, 2))[:, :, :x_in.shape[1]].transpose(1, 2)
+        x_conv = self.conv1d(x_in.transpose(1, 2))[:, :, : x_in.shape[1]].transpose(
+            1, 2
+        )
         x_conv = F.silu(x_conv)
 
         # Selective parameters
-        x_ssm = self.x_proj(x_conv)                                        # (B, L, dt_rank + 2·d_state)
-        delta, B_mat, C_mat = x_ssm.split([self.dt_rank, self.d_state, self.d_state], dim=-1)
-        delta = self.dt_proj(delta)                                         # (B, L, d_inner)
+        x_ssm = self.x_proj(x_conv)  # (B, L, dt_rank + 2·d_state)
+        delta, B_mat, C_mat = x_ssm.split(
+            [self.dt_rank, self.d_state, self.d_state], dim=-1
+        )
+        delta = self.dt_proj(delta)  # (B, L, d_inner)
 
-        A = -torch.exp(self.A_log)                                         # (d_inner, d_state)
+        A = -torch.exp(self.A_log)  # (d_inner, d_state)
 
         y = self._ssm_scan(x_conv, delta, A, B_mat, C_mat)
-        y = y + x_conv * self.D                                            # skip connection
-        y = y * F.silu(z)                                                  # gating
+        y = y + x_conv * self.D  # skip connection
+        y = y * F.silu(z)  # gating
 
         return self.out_proj(y) + residual
 
@@ -124,12 +142,16 @@ class MambaTemporalBlock(nn.Module):
         expand:     inner dimension expansion factor
     """
 
-    def __init__(self, d_model: int, n_layers: int = 2, d_state: int = 16, expand: int = 2):
+    def __init__(
+        self, d_model: int, n_layers: int = 2, d_state: int = 16, expand: int = 2
+    ):
         super().__init__()
-        self.layers = nn.ModuleList([
-            SelectiveSSM(d_model, d_state=d_state, expand=expand)
-            for _ in range(n_layers)
-        ])
+        self.layers = nn.ModuleList(
+            [
+                SelectiveSSM(d_model, d_state=d_state, expand=expand)
+                for _ in range(n_layers)
+            ]
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """x: (B, L, d_model)  →  (B, L, d_model)"""

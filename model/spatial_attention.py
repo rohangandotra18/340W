@@ -2,6 +2,7 @@
 Propagation-Delay aware spatial attention and adaptive node embeddings.
 Implements the spatial encoding from PDFormer (BUAABIGSCity/PDFormer).
 """
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -27,8 +28,8 @@ class AdaptiveSpatialEmbedding(nn.Module):
         adj:      (N, N)   — row-normalised adjacency
         Returns:  (N, embed_dim)
         """
-        e = self.node_embed(node_ids)                   # (N, d)
-        e_nbr = torch.mm(adj, self.neighbor_proj(e))    # (N, d)  topology-propagated
+        e = self.node_embed(node_ids)  # (N, d)
+        e_nbr = torch.mm(adj, self.neighbor_proj(e))  # (N, d)  topology-propagated
         return self.norm(e + e_nbr)
 
 
@@ -47,7 +48,7 @@ class PropagationDelayAttention(nn.Module):
         self.d_model = d_model
         self.n_heads = n_heads
         self.d_head = d_model // n_heads
-        self.scale = self.d_head ** -0.5
+        self.scale = self.d_head**-0.5
 
         self.q_proj = nn.Linear(d_model, d_model, bias=False)
         self.k_proj = nn.Linear(d_model, d_model, bias=False)
@@ -73,18 +74,18 @@ class PropagationDelayAttention(nn.Module):
         def split_heads(t: torch.Tensor) -> torch.Tensor:
             return t.reshape(B, N, self.n_heads, self.d_head).transpose(1, 2)
 
-        Q = split_heads(self.q_proj(x))     # (B, H, N, d_head)
+        Q = split_heads(self.q_proj(x))  # (B, H, N, d_head)
         K = split_heads(self.k_proj(x))
         V = split_heads(self.v_proj(x))
 
         # Attention with propagation-delay bias
-        scores = torch.matmul(Q, K.transpose(-2, -1)) * self.scale   # (B, H, N, N)
+        scores = torch.matmul(Q, K.transpose(-2, -1)) * self.scale  # (B, H, N, N)
         scores = scores + spatial_bias.unsqueeze(0) + self.delay_bias  # broadcast
 
         attn = F.softmax(scores, dim=-1)
         attn = self.attn_drop(attn)
 
-        out = torch.matmul(attn, V)                                    # (B, H, N, d_head)
+        out = torch.matmul(attn, V)  # (B, H, N, d_head)
         out = out.transpose(1, 2).reshape(B, N, self.d_model)
         return self.out_proj(out) + residual
 
@@ -92,7 +93,9 @@ class PropagationDelayAttention(nn.Module):
 class SpatialTransformerLayer(nn.Module):
     """Spatial attention + position-wise FFN with pre-norm on the FFN."""
 
-    def __init__(self, d_model: int, n_heads: int = 8, ffn_dim: int = None, dropout: float = 0.1):
+    def __init__(
+        self, d_model: int, n_heads: int = 8, ffn_dim: int = None, dropout: float = 0.1
+    ):
         super().__init__()
         ffn_dim = ffn_dim or d_model * 4
         self.attn = PropagationDelayAttention(d_model, n_heads, dropout)

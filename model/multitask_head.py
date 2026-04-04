@@ -2,6 +2,7 @@
 Multi-task head: speed/flow regression branch + congestion classification branch.
 Total loss = λ₁ · MAE_regression + λ₂ · CrossEntropy_classification
 """
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -63,8 +64,14 @@ class TrafficLoss(nn.Module):
     so no separate label preprocessing step is needed.
     """
 
-    def __init__(self, lambda1: float = 1.0, lambda2: float = 0.1, ffs: float = 65.0,
-                 scaler_mean: float = 0.0, scaler_std: float = 1.0):
+    def __init__(
+        self,
+        lambda1: float = 1.0,
+        lambda2: float = 0.1,
+        ffs: float = 65.0,
+        scaler_mean: float = 0.0,
+        scaler_std: float = 1.0,
+    ):
         super().__init__()
         self.lambda1 = lambda1
         self.lambda2 = lambda2
@@ -75,8 +82,8 @@ class TrafficLoss(nn.Module):
 
     def forward(
         self,
-        speed_pred: torch.Tensor,        # (B, T', N)
-        speed_true: torch.Tensor,        # (B, T', N)
+        speed_pred: torch.Tensor,  # (B, T', N)
+        speed_true: torch.Tensor,  # (B, T', N)
         congestion_logits: torch.Tensor,  # (B, N, n_classes)
     ) -> dict:
         mae = F.l1_loss(speed_pred, speed_true)
@@ -85,8 +92,8 @@ class TrafficLoss(nn.Module):
         speed_true_denorm = speed_true * self.scaler_std + self.scaler_mean
 
         # Derive congestion labels from mean speed over prediction horizon
-        speed_mean = speed_true_denorm.mean(dim=1)              # (B, N)
-        labels = compute_congestion_labels(speed_mean, self.ffs) # (B, N)
+        speed_mean = speed_true_denorm.mean(dim=1)  # (B, N)
+        labels = compute_congestion_labels(speed_mean, self.ffs)  # (B, N)
 
         B, N, n_cls = congestion_logits.shape
         ce = self.ce(congestion_logits.reshape(B * N, n_cls), labels.reshape(B * N))

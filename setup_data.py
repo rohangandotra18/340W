@@ -13,7 +13,6 @@ Real METR-LA:  207 nodes, 34,272 timesteps, 5-min intervals, Los Angeles
 """
 
 import os
-import sys
 import urllib.request
 import numpy as np
 
@@ -36,7 +35,7 @@ ADJ_URLS = [
 
 # ── expected METR-LA key names (different repos use different keys) ───────────
 DATA_KEYS = ["data", "x", "speed", "X", "array"]
-ADJ_KEYS  = ["adj_mx", "adj", "W", "A"]
+ADJ_KEYS = ["adj_mx", "adj", "W", "A"]
 
 
 def try_download(urls: list, dest: str, label: str) -> bool:
@@ -77,9 +76,9 @@ def load_or_fix_npz(path: str, data_keys: list, adj_keys: list):
         return None, None
 
     # Normalise shape to (T, N, C)
-    if data.ndim == 2:          # (T, N) → add channel dim
+    if data.ndim == 2:  # (T, N) → add channel dim
         data = data[:, :, np.newaxis]
-    elif data.ndim == 4:        # (samples, T, N, C) → flatten samples
+    elif data.ndim == 4:  # (samples, T, N, C) → flatten samples
         data = data.reshape(-1, *data.shape[2:])
 
     # Find adj (optional)
@@ -96,6 +95,7 @@ def load_or_fix_npz(path: str, data_keys: list, adj_keys: list):
 def build_adj_from_distances(csv_path: str, n_nodes: int = 207) -> np.ndarray:
     """Build row-normalised adjacency matrix from DCRNN distances CSV."""
     import csv
+
     sensor_ids, rows = set(), []
     with open(csv_path) as f:
         reader = csv.reader(f)
@@ -109,7 +109,7 @@ def build_adj_from_distances(csv_path: str, n_nodes: int = 207) -> np.ndarray:
     adj = np.zeros((N, N), dtype=np.float32)
     std = 10.0
     for u, v, d in rows:
-        w = float(np.exp(-(d ** 2) / (std ** 2)))
+        w = float(np.exp(-(d**2) / (std**2)))
         if w > 0.1:
             adj[id2idx[u], id2idx[v]] = w
             adj[id2idx[v], id2idx[u]] = w
@@ -139,18 +139,21 @@ def generate_synthetic_metr_la() -> tuple:
     t_idx = np.arange(T) % 288
 
     # Base speed with rush-hour pattern: dips at ~8am (96) and ~5pm (204)
-    base = 55.0 - 20 * np.exp(-((t_idx - 96) ** 2) / (2 * 15 ** 2)) \
-                - 15 * np.exp(-((t_idx - 204) ** 2) / (2 * 12 ** 2))
+    base = (
+        55.0
+        - 20 * np.exp(-((t_idx - 96) ** 2) / (2 * 15**2))
+        - 15 * np.exp(-((t_idx - 204) ** 2) / (2 * 12**2))
+    )
     base = base.astype(np.float32)  # (T,)
 
     # Spatial correlation: sensors in 5 groups (geographic clusters)
     group = np.repeat(np.arange(5), N // 5 + 1)[:N]
-    spatial_factor = 1.0 + 0.1 * (group / 4.0 - 0.5)   # (N,)
+    spatial_factor = 1.0 + 0.1 * (group / 4.0 - 0.5)  # (N,)
 
     # Combine: (T, N) with noise
     speeds = base[:, None] * spatial_factor[None, :]
     speeds += np.random.normal(0, 3.0, (T, N)).astype(np.float32)
-    speeds = speeds.clip(5, 75)[:, :, np.newaxis]   # (T, N, 1)
+    speeds = speeds.clip(5, 75)[:, :, np.newaxis]  # (T, N, 1)
 
     # Simple ring topology adjacency matrix
     adj = np.zeros((N, N), dtype=np.float32)
@@ -171,15 +174,15 @@ def main():
     print(f"Target: {DATA_DIR}\n")
 
     metr_npz = os.path.join(DATA_DIR, "metr-la.npz")
-    adj_npz  = os.path.join(DATA_DIR, "adj_metr_la.npz")
+    adj_npz = os.path.join(DATA_DIR, "adj_metr_la.npz")
     # --------------------------------------------------------------
     # NEW: If the real data files already exist, skip download/synthetic steps
     # --------------------------------------------------------------
     if os.path.exists(metr_npz) and os.path.exists(adj_npz):
         print("[ INFO ] Real METR‑LA files already present – skipping download.")
         try:
-            data_arr = np.load(metr_npz)['data']
-            adj_arr = np.load(adj_npz)['adj_mx']
+            data_arr = np.load(metr_npz)["data"]
+            adj_arr = np.load(adj_npz)["adj_mx"]
             print(f"  ✅ Data shape: {data_arr.shape}")
             print(f"  ✅ Adj shape: {adj_arr.shape}")
         except Exception as e:

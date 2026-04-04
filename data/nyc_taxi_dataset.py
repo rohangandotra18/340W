@@ -16,8 +16,7 @@ Data source:
 """
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -143,11 +142,11 @@ class NYCTaxiDataset(Dataset):
             od_split = self.od_demand[slices[split]]
 
         for i in range(len(data_split) - window + 1):
-            self._X.append(data_split[i : i + in_horizon])
-            self._Y.append(data_split[i + in_horizon : i + window, :, 0])  # speed
+            self._X.append(data_split[i: i + in_horizon])
+            self._Y.append(data_split[i + in_horizon: i + window, :, 0])  # speed
             if od_split is not None:
                 # Mean OD demand over prediction horizon
-                self._OD.append(od_split[i + in_horizon : i + window].mean(axis=0))
+                self._OD.append(od_split[i + in_horizon: i + window].mean(axis=0))
 
         self._X_arr = np.stack(self._X, axis=0)
         self._Y_arr = np.stack(self._Y, axis=0)
