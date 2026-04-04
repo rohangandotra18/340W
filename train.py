@@ -179,10 +179,16 @@ def main(args: argparse.Namespace) -> None:
             lambda_ce=args.lambda2,
             lambda_spo=args.spo_weight,
             ffs=args.ffs,
+            scaler_mean=float(train_ds.mean[0,0,0]),
+            scaler_std=float(train_ds.std[0,0,0]),
         )
         print(f"  Using SPO+ decision-focused loss (λ_spo={args.spo_weight})")
     else:
-        criterion = TrafficLoss(lambda1=args.lambda1, lambda2=args.lambda2, ffs=args.ffs)
+        criterion = TrafficLoss(
+            lambda1=args.lambda1, lambda2=args.lambda2, ffs=args.ffs,
+            scaler_mean=float(train_ds.mean[0,0,0]),
+            scaler_std=float(train_ds.std[0,0,0])
+        )
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay,
     )

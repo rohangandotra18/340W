@@ -196,6 +196,8 @@ class SPOPlusTrafficLoss(nn.Module):
         lambda_ce: float = 0.1,
         lambda_spo: float = 0.5,
         ffs: float = 65.0,
+        scaler_mean: float = 0.0,
+        scaler_std: float = 1.0,
     ):
         super().__init__()
         self.edges = edges
@@ -204,6 +206,8 @@ class SPOPlusTrafficLoss(nn.Module):
         self.lambda_ce = lambda_ce
         self.lambda_spo = lambda_spo
         self.ffs = ffs
+        self.scaler_mean = scaler_mean
+        self.scaler_std = scaler_std
 
         self.solver = ShortestPathSolver(edges, n_nodes, origin, destination)
         self.ce = nn.CrossEntropyLoss()
@@ -232,8 +236,12 @@ class SPOPlusTrafficLoss(nn.Module):
         # --- MAE ---
         mae = torch.nn.functional.l1_loss(speed_pred, speed_true)
 
+        # Denormalise speeds prior to converting into threshold logic and travel times
+        speed_pred_denorm = speed_pred * self.scaler_std + self.scaler_mean
+        speed_true_denorm = speed_true * self.scaler_std + self.scaler_mean
+
         # --- CE ---
-        speed_mean = speed_true.mean(dim=1)  # (B, N)
+        speed_mean = speed_true_denorm.mean(dim=1)  # (B, N)
         labels = compute_congestion_labels(speed_mean, self.ffs)
         B, N, n_cls = congestion_logits.shape
         ce = self.ce(
@@ -243,8 +251,8 @@ class SPOPlusTrafficLoss(nn.Module):
 
         # --- SPO+ ---
         # Use mean over prediction horizon for routing cost
-        pred_mean = speed_pred.mean(dim=1)  # (B, N)
-        true_mean = speed_true.mean(dim=1)  # (B, N)
+        pred_mean = speed_pred_denorm.mean(dim=1)  # (B, N)
+        true_mean = speed_true_denorm.mean(dim=1)  # (B, N)
 
         pred_costs = self._speeds_to_edge_costs(pred_mean)  # (B, E)
         true_costs = self._speeds_to_edge_costs(true_mean)  # (B, E)
