@@ -56,8 +56,12 @@ def train_epoch(
         use_amp = scaler is not None
         with torch.amp.autocast("cuda", enabled=use_amp):
             out = model(x, adj)
-            speed_pred = out["speed_pred"].permute(0, 2, 1)  # (B, T', N)
-            losses = criterion(speed_pred, y, out["congestion"])
+
+        # Criterion runs outside autocast: SPO+ does CPU↔GPU transfers (numpy
+        # Dijkstra) that crash if the inductor has CUDA graph capture active.
+        # Casting to float32 is a no-op for standard loss but safe for SPO+.
+        speed_pred = out["speed_pred"].permute(0, 2, 1).float()  # (B, T', N)
+        losses = criterion(speed_pred, y.float(), out["congestion"].float())
 
         if use_amp:
             scaler.scale(losses["total"]).backward()
@@ -222,14 +226,7 @@ def main(args: argparse.Namespace) -> None:
         T_max=args.epochs,
         eta_min=args.lr * 0.01,
     )
-    # SPO+ custom autograd does CPU↔GPU transfers that crash when AMP's inductor
-    # backend triggers CUDA graph capture.  Disable AMP for SPO+ runs entirely
-    # (no throughput loss: Dijkstra per batch already dominates training time).
-    scaler = (
-        torch.cuda.amp.GradScaler()
-        if device.type == "cuda" and not args.use_spo
-        else None
-    )
+    scaler = torch.cuda.amp.GradScaler() if device.type == "cuda" else None
 
     # ── training loop ─────────────────────────────────────────────────────
     out_dir = Path(args.output_dir)
