@@ -1,6 +1,18 @@
 """PDFormer++ training script module docstring."""
+
 from __future__ import annotations
+from model.spo_loss import SPOPlusTrafficLoss
+from model.multitask_head import TrafficLoss
+from model.pdformer_plus import PDFormerPlusPlus
+from data.traffic_dataset import TrafficDataset
+from torch.utils.data import DataLoader
+import torch.nn as nn
+import torch
+from pathlib import Path
+import time
+import argparse
 import os
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 """
 Training script for PDFormer++.
@@ -18,21 +30,10 @@ Example (METR-LA):
 
 On Roar Collab A100 this trains in < 1 hour for 150 epochs on METR-LA.
 """
-import argparse
-import time
-from pathlib import Path
-
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
-
-from data.traffic_dataset import TrafficDataset
-from model.pdformer_plus import PDFormerPlusPlus
-from model.multitask_head import TrafficLoss
-from model.spo_loss import SPOPlusTrafficLoss
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+
 
 def train_epoch(
     model: nn.Module,
@@ -47,15 +48,15 @@ def train_epoch(
     total_loss = total_mae = n = 0
 
     for i, (x, y) in enumerate(loader):
-        x = x.to(device, non_blocking=True)   # (B, in_T, N, C)
-        y = y.to(device, non_blocking=True)   # (B, out_T, N)
+        x = x.to(device, non_blocking=True)  # (B, in_T, N, C)
+        y = y.to(device, non_blocking=True)  # (B, out_T, N)
 
         optimizer.zero_grad(set_to_none=True)
 
         use_amp = scaler is not None
         with torch.amp.autocast("cuda", enabled=use_amp):
             out = model(x, adj)
-            speed_pred = out["speed_pred"].permute(0, 2, 1)   # (B, T', N)
+            speed_pred = out["speed_pred"].permute(0, 2, 1)  # (B, T', N)
             losses = criterion(speed_pred, y, out["congestion"])
 
         if use_amp:
@@ -70,12 +71,15 @@ def train_epoch(
             optimizer.step()
 
         total_loss += losses["total"].item()
-        total_mae  += losses["mae"].item()
+        total_mae += losses["mae"].item()
         n += 1
 
         # Periodic progress update to SLURM output
         if i % 100 == 0 and i > 0:
-            print(f"    [Batch {i:3d}/{len(loader)}] Loss: {losses['total'].item():.4f}", flush=True)
+            print(
+                f"    [Batch {i:3d}/{len(loader)}] Loss: {losses['total'].item():.4f}",
+                flush=True,
+            )
 
     return total_loss / n, total_mae / n
 
@@ -97,13 +101,13 @@ def eval_epoch(
 
         with torch.amp.autocast("cuda", enabled=device.type == "cuda"):
             out = model(x, adj)
-        speed_pred = out["speed_pred"].permute(0, 2, 1)   # (B, T', N)
+        speed_pred = out["speed_pred"].permute(0, 2, 1)  # (B, T', N)
 
         # Denormalise before computing metrics
         speed_pred = dataset.denormalize_speed(speed_pred)
-        y_real     = dataset.denormalize_speed(y)
+        y_real = dataset.denormalize_speed(y)
 
-        total_mae  += (speed_pred - y_real).abs().mean().item()
+        total_mae += (speed_pred - y_real).abs().mean().item()
         total_rmse += ((speed_pred - y_real) ** 2).mean().sqrt().item()
         n += 1
 
@@ -112,12 +116,15 @@ def eval_epoch(
 
 # ── main ─────────────────────────────────────────────────────────────────────
 
+
 def main(args: argparse.Namespace) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
     if device.type == "cuda":
         print(f"  GPU: {torch.cuda.get_device_name(0)}")
-        print(f"  VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+        print(
+            f"  VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB"
+        )
 
     # ── data ─────────────────────────────────────────────────────────────
     print("\nLoading data …")
@@ -128,21 +135,29 @@ def main(args: argparse.Namespace) -> None:
         out_horizon=args.out_horizon,
     )
     train_ds = TrafficDataset(**common, split="train")
-    val_ds   = TrafficDataset(**common, split="val")
+    val_ds = TrafficDataset(**common, split="val")
 
     _loader_kw = dict(num_workers=args.num_workers, pin_memory=True)
     if args.num_workers > 0:
         _loader_kw.update(prefetch_factor=2, persistent_workers=True)
     train_loader = DataLoader(
-        train_ds, batch_size=args.batch_size, shuffle=True, **_loader_kw,
+        train_ds,
+        batch_size=args.batch_size,
+        shuffle=True,
+        **_loader_kw,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=args.batch_size, shuffle=False, **_loader_kw,
+        val_ds,
+        batch_size=args.batch_size,
+        shuffle=False,
+        **_loader_kw,
     )
 
     adj = train_ds.adj.to(device)
     n_nodes = train_ds.n_nodes
-    print(f"  Nodes: {n_nodes}  |  Train samples: {len(train_ds)}  |  Val samples: {len(val_ds)}")
+    print(
+        f"  Nodes: {n_nodes}  |  Train samples: {len(train_ds)}  |  Val samples: {len(val_ds)}"
+    )
 
     # ── model ─────────────────────────────────────────────────────────────
     model = PDFormerPlusPlus(
@@ -161,8 +176,10 @@ def main(args: argparse.Namespace) -> None:
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\nModel parameters: {n_params:,}")
 
-    # Compile model for massive speedups if using PyTorch 2.0+ on CUDA
-    if device.type == "cuda" and hasattr(torch, "compile"):
+    # Compile model for massive speedups if using PyTorch 2.0+ on CUDA.
+    # Skip when SPO+ is active: its custom autograd function does CPU↔GPU
+    # transfers inside forward() that are incompatible with CUDA graph tracing.
+    if device.type == "cuda" and hasattr(torch, "compile") and not args.use_spo:
         print("  Compiling model with torch.compile() for speed...")
         try:
             model = torch.compile(model)
@@ -183,21 +200,27 @@ def main(args: argparse.Namespace) -> None:
             lambda_ce=args.lambda2,
             lambda_spo=args.spo_weight,
             ffs=args.ffs,
-            scaler_mean=float(train_ds.mean[0,0,0]),
-            scaler_std=float(train_ds.std[0,0,0]),
+            scaler_mean=float(train_ds.mean[0, 0, 0]),
+            scaler_std=float(train_ds.std[0, 0, 0]),
         )
         print(f"  Using SPO+ decision-focused loss (λ_spo={args.spo_weight})")
     else:
         criterion = TrafficLoss(
-            lambda1=args.lambda1, lambda2=args.lambda2, ffs=args.ffs,
-            scaler_mean=float(train_ds.mean[0,0,0]),
-            scaler_std=float(train_ds.std[0,0,0])
+            lambda1=args.lambda1,
+            lambda2=args.lambda2,
+            ffs=args.ffs,
+            scaler_mean=float(train_ds.mean[0, 0, 0]),
+            scaler_std=float(train_ds.std[0, 0, 0]),
         )
     optimizer = torch.optim.AdamW(
-        model.parameters(), lr=args.lr, weight_decay=args.weight_decay,
+        model.parameters(),
+        lr=args.lr,
+        weight_decay=args.weight_decay,
     )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=args.epochs, eta_min=args.lr * 0.01,
+        optimizer,
+        T_max=args.epochs,
+        eta_min=args.lr * 0.01,
     )
     scaler = torch.cuda.amp.GradScaler() if device.type == "cuda" else None
 
@@ -210,8 +233,10 @@ def main(args: argparse.Namespace) -> None:
 
     for epoch in range(1, args.epochs + 1):
         t0 = time.perf_counter()
-        train_loss, train_mae = train_epoch(model, train_loader, optimizer, criterion, adj, device, scaler)
-        val_mae, val_rmse     = eval_epoch(model, val_loader, adj, device, val_ds)
+        train_loss, train_mae = train_epoch(
+            model, train_loader, optimizer, criterion, adj, device, scaler
+        )
+        val_mae, val_rmse = eval_epoch(model, val_loader, adj, device, val_ds)
         scheduler.step()
         elapsed = time.perf_counter() - t0
 
@@ -231,10 +256,10 @@ def main(args: argparse.Namespace) -> None:
                     "optimizer_state_dict": optimizer.state_dict(),
                     "val_mae": val_mae,
                     "args": {
-                        **vars(args), 
+                        **vars(args),
                         "n_nodes": n_nodes,
-                        "scaler_mean": float(train_ds.mean[0,0,0]),
-                        "scaler_std": float(train_ds.std[0,0,0])
+                        "scaler_mean": float(train_ds.mean[0, 0, 0]),
+                        "scaler_std": float(train_ds.std[0, 0, 0]),
                     },
                 },
                 out_dir / "best_model.pt",
@@ -250,36 +275,55 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Train PDFormer++")
 
     # Data
-    p.add_argument("--data_path",   required=True)
-    p.add_argument("--adj_path",    default=None)
-    p.add_argument("--in_channels", type=int, default=3,  help="Feature channels per node")
-    p.add_argument("--in_horizon",  type=int, default=12, help="Input timesteps (12 = 1hr @ 5min)")
+    p.add_argument("--data_path", required=True)
+    p.add_argument("--adj_path", default=None)
+    p.add_argument(
+        "--in_channels", type=int, default=3, help="Feature channels per node"
+    )
+    p.add_argument(
+        "--in_horizon", type=int, default=12, help="Input timesteps (12 = 1hr @ 5min)"
+    )
     p.add_argument("--out_horizon", type=int, default=12, help="Prediction horizon")
 
     # Model
-    p.add_argument("--d_model",            type=int,   default=64)
-    p.add_argument("--n_temporal_layers",  type=int,   default=2)
-    p.add_argument("--n_spatial_layers",   type=int,   default=2)
-    p.add_argument("--n_heads",            type=int,   default=8)
-    p.add_argument("--d_state",            type=int,   default=16,  help="Mamba SSM state dim")
-    p.add_argument("--n_classes",          type=int,   default=3,   help="Congestion classes")
-    p.add_argument("--dropout",            type=float, default=0.1)
+    p.add_argument("--d_model", type=int, default=64)
+    p.add_argument("--n_temporal_layers", type=int, default=2)
+    p.add_argument("--n_spatial_layers", type=int, default=2)
+    p.add_argument("--n_heads", type=int, default=8)
+    p.add_argument("--d_state", type=int, default=16, help="Mamba SSM state dim")
+    p.add_argument("--n_classes", type=int, default=3, help="Congestion classes")
+    p.add_argument("--dropout", type=float, default=0.1)
 
     # Training
-    p.add_argument("--epochs",        type=int,   default=50)
-    p.add_argument("--batch_size",    type=int,   default=64)
-    p.add_argument("--lr",            type=float, default=1e-3)
-    p.add_argument("--weight_decay",  type=float, default=1e-4)
-    p.add_argument("--lambda1",       type=float, default=1.0,  help="Regression loss weight")
-    p.add_argument("--lambda2",       type=float, default=0.1,  help="Classification loss weight")
-    p.add_argument("--ffs",           type=float, default=65.0, help="Free-flow speed (km/h or mph)")
-    p.add_argument("--num_workers",   type=int,   default=4)
-    p.add_argument("--output_dir",    default="./checkpoints")
+    p.add_argument("--epochs", type=int, default=50)
+    p.add_argument("--batch_size", type=int, default=64)
+    p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--weight_decay", type=float, default=1e-4)
+    p.add_argument("--lambda1", type=float, default=1.0, help="Regression loss weight")
+    p.add_argument(
+        "--lambda2", type=float, default=0.1, help="Classification loss weight"
+    )
+    p.add_argument(
+        "--ffs", type=float, default=65.0, help="Free-flow speed (km/h or mph)"
+    )
+    p.add_argument("--num_workers", type=int, default=4)
+    p.add_argument("--output_dir", default="./checkpoints")
 
     # SPO+ decision-focused loss
-    p.add_argument("--use_spo",        action="store_true",     help="Enable SPO+ decision-focused loss")
-    p.add_argument("--spo_weight",     type=float, default=0.5, help="Weight for SPO+ routing regret")
-    p.add_argument("--spo_origin",     type=int,   default=0,   help="Source node for SPO+ routing")
-    p.add_argument("--spo_destination",type=int,   default=50,  help="Destination node for SPO+ routing")
+    p.add_argument(
+        "--use_spo", action="store_true", help="Enable SPO+ decision-focused loss"
+    )
+    p.add_argument(
+        "--spo_weight", type=float, default=0.5, help="Weight for SPO+ routing regret"
+    )
+    p.add_argument(
+        "--spo_origin", type=int, default=0, help="Source node for SPO+ routing"
+    )
+    p.add_argument(
+        "--spo_destination",
+        type=int,
+        default=50,
+        help="Destination node for SPO+ routing",
+    )
 
     main(p.parse_args())
