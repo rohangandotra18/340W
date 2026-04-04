@@ -153,7 +153,10 @@ def main(args: argparse.Namespace) -> None:
         n_classes=a["n_classes"],
     ).to(device)
 
-    model.load_state_dict(ckpt["model_state_dict"])
+    # Handle models trained with torch.compile() by stripping the _orig_mod. prefix
+    state_dict = ckpt["model_state_dict"]
+    uncompiled_state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
+    model.load_state_dict(uncompiled_state_dict)
     print(f"Loaded checkpoint from epoch {ckpt['epoch']}  (Val MAE {ckpt['val_mae']:.4f})")
 
     ffs = a.get("ffs", args.ffs)

@@ -78,7 +78,10 @@ class TrafficTransformerPipeline:
             d_state=a["d_state"],
             n_classes=a["n_classes"],
         ).to(self.device)
-        self.model.load_state_dict(ckpt["model_state_dict"])
+        # Handle models trained with torch.compile()
+        state_dict = ckpt["model_state_dict"]
+        uncompiled_state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
+        self.model.load_state_dict(uncompiled_state_dict)
         self.model.eval()
 
         self.out_horizon: int = a["out_horizon"]
