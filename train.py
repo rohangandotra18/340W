@@ -46,7 +46,7 @@ def train_epoch(
     model.train()
     total_loss = total_mae = n = 0
 
-    for x, y in loader:
+    for i, (x, y) in enumerate(loader):
         x = x.to(device, non_blocking=True)   # (B, in_T, N, C)
         y = y.to(device, non_blocking=True)   # (B, out_T, N)
 
@@ -72,6 +72,10 @@ def train_epoch(
         total_loss += losses["total"].item()
         total_mae  += losses["mae"].item()
         n += 1
+
+        # Periodic progress update to SLURM output
+        if i % 100 == 0 and i > 0:
+            print(f"    [Batch {i:3d}/{len(loader)}] Loss: {losses['total'].item():.4f}", flush=True)
 
     return total_loss / n, total_mae / n
 
@@ -226,7 +230,12 @@ def main(args: argparse.Namespace) -> None:
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "val_mae": val_mae,
-                    "args": {**vars(args), "n_nodes": n_nodes},
+                    "args": {
+                        **vars(args), 
+                        "n_nodes": n_nodes,
+                        "scaler_mean": float(train_ds.mean[0,0,0]),
+                        "scaler_std": float(train_ds.std[0,0,0])
+                    },
                 },
                 out_dir / "best_model.pt",
             )

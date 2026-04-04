@@ -82,6 +82,8 @@ class TrafficTransformerPipeline:
         self.model.eval()
 
         self.out_horizon: int = a["out_horizon"]
+        self.scaler_mean = a.get("scaler_mean", 0.0)
+        self.scaler_std = a.get("scaler_std", 1.0)
 
         # ── router ────────────────────────────────────────────────────────
         self.router = TimeDependentRouter(edges)
@@ -106,11 +108,17 @@ class TrafficTransformerPipeline:
         x   = x.to(self.device)
         adj = adj.to(self.device)
 
+        # Normalise input features using training set statistics
+        x = (x - self.scaler_mean) / self.scaler_std
+
         with torch.amp.autocast("cuda", enabled=self.device.type == "cuda"):
             out = self.model(x, adj)
 
+        speed_pred = out["speed_pred"].squeeze(0).cpu().numpy()
+        speed_pred = speed_pred * self.scaler_std + self.scaler_mean
+
         return {
-            "speed_pred": out["speed_pred"].squeeze(0).cpu().numpy(),         # (N, T')
+            "speed_pred": speed_pred,                                             # (N, T')
             "congestion": out["congestion"].squeeze(0).argmax(-1).cpu().numpy(),  # (N,)
         }
 
