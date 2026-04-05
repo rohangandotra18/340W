@@ -125,6 +125,8 @@ python train.py \
 
 ### Step 4 — Train with SPO+ decision-focused loss
 
+> **Important:** SPO+ cannot use `torch.compile` (its custom autograd function does CPU↔GPU transfers incompatible with CUDA graph capture). Use **batch_size 16** to fit within a 10 GB MIG GPU slice and request **64 GB system RAM** since Dijkstra solves run on CPU each batch.
+
 ```bash
 python train.py \
   --data_path   data/metr-la.npz \
@@ -132,7 +134,8 @@ python train.py \
   --in_channels 1 \
   --d_model     64 \
   --epochs      50 \
-  --batch_size  64 \
+  --batch_size  16 \
+  --num_workers 1 \
   --use_spo \
   --spo_weight  0.5 \
   --spo_origin  0 \
@@ -228,7 +231,7 @@ cd ~/340W
 python setup_data.py
 ```
 
-### 4. Create and submit a GPU job
+### 4. Submit standard training (batch=64, torch.compile enabled)
 
 ```bash
 cat > ~/340W/submit_train.sh << 'EOF'
@@ -257,16 +260,106 @@ python train.py \
   --batch_size 64 \
   --output_dir ./checkpoints/metr_la
 EOF
+
+sbatch ~/340W/submit_train.sh
 ```
 
-Submit and monitor:
+Expected runtime: **~45–60 minutes** on a single A100 MIG slice.
+
+### 5. Submit SPO+ training (batch=16, no torch.compile)
+
+> **SPO+ constraints:** The custom autograd function does CPU↔GPU transfers (Dijkstra solver) that are incompatible with torch.compile and AMP inside the loss. Batch size 16 fits within the 10 GB MIG GPU slice. Requires 64 GB system RAM due to per-batch CPU Dijkstra solves + DataLoader workers.
 
 ```bash
-sbatch ~/340W/submit_train.sh
-squeue -u rjg6014     # watch job status
+cat > ~/340W/submit_spo.sh << 'EOF'
+#!/bin/bash
+#SBATCH --job-name=pdformerpp-spo
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64GB
+#SBATCH --gres=gpu:1
+#SBATCH --time=04:00:00
+#SBATCH --partition=standard
+#SBATCH --output=train_spo_%j.log
+#SBATCH --error=train_spo_%j.err
+
+module load python/3.11.2
+source /storage/work/rjg6014/pdformer_venv/bin/activate
+cd ~/340W
+
+python train.py \
+  --data_path   data/metr-la.npz \
+  --adj_path    data/adj_metr_la.npz \
+  --in_channels 1 \
+  --d_model     64 \
+  --epochs      50 \
+  --batch_size  16 \
+  --num_workers 1 \
+  --use_spo \
+  --spo_weight  0.5 \
+  --spo_origin  0 \
+  --spo_destination 50 \
+  --output_dir  ./checkpoints/metr_la_spo
+EOF
+
+sbatch ~/340W/submit_spo.sh
 ```
 
-Expected runtime: **~45–60 minutes** on a single A100.
+Expected runtime: **~16 min/epoch** (~13 hours for 50 epochs; 4-hour wall time gets ~14 epochs).
+
+### 6. Monitor jobs
+
+```bash
+squeue -u rjg6014                        # check job status
+tail -f ~/340W/train_spo_<JOBID>.log     # watch training progress
+cat ~/340W/train_spo_<JOBID>.err         # check for errors
+```
+
+### 7. Evaluate (run with GPU via srun)
+
+> **Do not evaluate on the login node** — it will be killed for memory usage.
+
+```bash
+source /storage/work/rjg6014/pdformer_venv/bin/activate
+cd ~/340W
+
+# Standard model
+srun --partition=standard --mem=16GB --gres=gpu:1 --time=00:10:00 \
+  python evaluate.py \
+  --checkpoint checkpoints/metr_la/best_model.pt \
+  --data_path data/metr-la.npz \
+  --adj_path data/adj_metr_la.npz
+
+# SPO+ model
+srun --partition=standard --mem=16GB --gres=gpu:1 --time=00:10:00 \
+  python evaluate.py \
+  --checkpoint checkpoints/metr_la_spo/best_model.pt \
+  --data_path data/metr-la.npz \
+  --adj_path data/adj_metr_la.npz
+```
+
+---
+
+## Results (METR-LA)
+
+### Prediction Accuracy
+
+| Horizon | Standard MAE | SPO+ MAE | Standard RMSE | SPO+ RMSE | Standard MAPE | SPO+ MAPE |
+|---|---|---|---|---|---|---|
+| 15 min | 2.4000 | 2.4003 | 3.0080 | 3.0084 | 4.86% | 4.85% |
+| 30 min | 2.4120 | 2.4078 | 3.0239 | 3.0183 | 4.88% | 4.88% |
+| 60 min | 2.4873 | 2.4689 | 3.1239 | 3.0997 | 5.06% | 5.01% |
+| **Overall** | **2.4258** | **2.4198** | **3.0422** | **3.0344** | **4.92%** | **4.90%** |
+
+### Congestion Classification
+
+| Model | Accuracy | Free-flow F1 | Slow F1 |
+|---|---|---|---|
+| Standard (33 epochs) | 92.50% | 0.9363 | 0.9088 |
+| SPO+ (12 epochs) | 92.57% | 0.9366 | 0.9103 |
+
+SPO+ achieves better results across all metrics with only 12 epochs of training vs 33 for the standard model. The largest improvement is at the 60-minute horizon (-0.018 MAE), which is where routing decisions matter most.
 
 ---
 
