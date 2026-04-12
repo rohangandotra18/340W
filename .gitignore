@@ -59,3 +59,4 @@ tensorboard/
 *.docx
 *.html
 *.pptx
+.claude/
