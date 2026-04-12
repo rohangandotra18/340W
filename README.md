@@ -207,7 +207,7 @@ Compares Mamba vs GRU vs Transformer speed, SPO+ routing quality vs standard los
 ### 1. SSH in and clone
 
 ```bash
-ssh rjg6014@submit.hpc.psu.edu
+ssh <PSUID>@submit.hpc.psu.edu
 git clone https://github.com/rohangandotra18/340W.git
 cd 340W
 ```
@@ -218,8 +218,8 @@ cd 340W
 
 ```bash
 module load python/3.11.2
-python3 -m venv /storage/work/rjg6014/pdformer_venv
-source /storage/work/rjg6014/pdformer_venv/bin/activate
+python3 -m venv /storage/work/<PSUID>/pdformer_venv
+source /storage/work/<PSUID>/pdformer_venv/bin/activate
 pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir 'numpy<2' torch networkx scipy pyyaml
 ```
@@ -248,7 +248,7 @@ cat > ~/340W/submit_train.sh << 'EOF'
 #SBATCH --error=train_%j.err
 
 module load python/3.11.2
-source /storage/work/rjg6014/pdformer_venv/bin/activate
+source /storage/work/<PSUID>/pdformer_venv/bin/activate
 cd ~/340W
 
 python train.py \
@@ -285,7 +285,7 @@ cat > ~/340W/submit_spo.sh << 'EOF'
 #SBATCH --error=train_spo_%j.err
 
 module load python/3.11.2
-source /storage/work/rjg6014/pdformer_venv/bin/activate
+source /storage/work/<PSUID>/pdformer_venv/bin/activate
 cd ~/340W
 
 python train.py \
@@ -311,7 +311,7 @@ Expected runtime: **~16 min/epoch** (~13 hours for 50 epochs; 4-hour wall time g
 ### 6. Monitor jobs
 
 ```bash
-squeue -u rjg6014                        # check job status
+squeue -u <PSUID>                        # check job status
 tail -f ~/340W/train_spo_<JOBID>.log     # watch training progress
 cat ~/340W/train_spo_<JOBID>.err         # check for errors
 ```
@@ -321,7 +321,7 @@ cat ~/340W/train_spo_<JOBID>.err         # check for errors
 > **Do not evaluate on the login node** — it will be killed for memory usage.
 
 ```bash
-source /storage/work/rjg6014/pdformer_venv/bin/activate
+source /storage/work/<PSUID>/pdformer_venv/bin/activate
 cd ~/340W
 
 # Standard model
