@@ -142,7 +142,7 @@ def main(args: argparse.Namespace) -> None:
         split="test",
     )
     loader = DataLoader(
-        test_ds, batch_size=64, shuffle=False, num_workers=4, pin_memory=True
+        test_ds, batch_size=16, shuffle=False, num_workers=4, pin_memory=True
     )
     adj = test_ds.adj.to(device)
 
