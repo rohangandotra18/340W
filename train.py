@@ -66,12 +66,12 @@ def train_epoch(
         if use_amp:
             scaler.scale(losses["total"]).backward()
             scaler.unscale_(optimizer)
-            nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             scaler.step(optimizer)
             scaler.update()
         else:
             losses["total"].backward()
-            nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
 
         total_loss += losses["total"].item()
@@ -226,7 +226,7 @@ def main(args: argparse.Namespace) -> None:
         T_max=args.epochs,
         eta_min=args.lr * 0.01,
     )
-    scaler = torch.amp.GradScaler("cuda") if device.type == "cuda" else None
+    scaler = None  # Disabled AMP because it causes NaN overflow in pure PyTorch Mamba
 
     # ── training loop ─────────────────────────────────────────────────────
     out_dir = Path(args.output_dir)
@@ -301,7 +301,7 @@ if __name__ == "__main__":
     # Training
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--batch_size", type=int, default=64)
-    p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--lr", type=float, default=5e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)
     p.add_argument("--lambda1", type=float, default=1.0, help="Regression loss weight")
     p.add_argument(
