@@ -318,19 +318,13 @@ def main():
     spo_path_str = "→".join(str(n) for n in spo["path"])
 
     print(
-        f"  {
-            'Standard MAE loss':<25} {
-            std_path_str:>20} {
-                std['cost']:>11.0f} min {
-                    std['mae']:>8.2f} {
-                        regret_std:>7.0f} min")
+        f"  {'Standard MAE loss':<25} {std_path_str:>20} "
+        f"{std['cost']:>11.0f} min {std['mae']:>8.2f} {regret_std:>7.0f} min"
+    )
     print(
-        f"  {
-            'SPO+ loss (ours)':<25} {
-            spo_path_str:>20} {
-                spo['cost']:>11.0f} min {
-                    spo['mae']:>8.2f} {
-                        regret_spo:>7.0f} min")
+        f"  {'SPO+ loss (ours)':<25} {spo_path_str:>20} "
+        f"{spo['cost']:>11.0f} min {spo['mae']:>8.2f} {regret_spo:>7.0f} min"
+    )
 
     if regret_std > regret_spo:
         improvement = (1 - regret_spo / max(regret_std, 1e-6)) * 100
