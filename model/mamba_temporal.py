@@ -10,6 +10,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+try:
+    from mamba_ssm import Mamba as OfficialMamba
+    HAS_MAMBA_SSM = True
+except ImportError:
+    HAS_MAMBA_SSM = False
 
 class SelectiveSSM(nn.Module):
     """
@@ -146,12 +151,21 @@ class MambaTemporalBlock(nn.Module):
         self, d_model: int, n_layers: int = 2, d_state: int = 16, expand: int = 2
     ):
         super().__init__()
-        self.layers = nn.ModuleList(
-            [
-                SelectiveSSM(d_model, d_state=d_state, expand=expand)
-                for _ in range(n_layers)
-            ]
-        )
+        
+        if HAS_MAMBA_SSM:
+            self.layers = nn.ModuleList(
+                [
+                    OfficialMamba(d_model=d_model, d_state=d_state, expand=expand)
+                    for _ in range(n_layers)
+                ]
+            )
+        else:
+            self.layers = nn.ModuleList(
+                [
+                    SelectiveSSM(d_model, d_state=d_state, expand=expand)
+                    for _ in range(n_layers)
+                ]
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """x: (B, L, d_model)  →  (B, L, d_model)"""
