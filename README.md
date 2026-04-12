@@ -241,7 +241,7 @@ cat > ~/340W/submit_train.sh << 'EOF'
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32GB
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:a100:1
 #SBATCH --time=04:00:00
 #SBATCH --partition=standard
 #SBATCH --output=train_%j.log
@@ -278,7 +278,7 @@ cat > ~/340W/submit_spo.sh << 'EOF'
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64GB
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:a100:1
 #SBATCH --time=04:00:00
 #SBATCH --partition=standard
 #SBATCH --output=train_spo_%j.log
@@ -325,14 +325,14 @@ source /storage/work/rjg6014/pdformer_venv/bin/activate
 cd ~/340W
 
 # Standard model
-srun --partition=standard --mem=16GB --gres=gpu:1 --time=00:10:00 \
+srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
   python evaluate.py \
   --checkpoint checkpoints/metr_la/best_model.pt \
   --data_path data/metr-la.npz \
   --adj_path data/adj_metr_la.npz
 
 # SPO+ model
-srun --partition=standard --mem=16GB --gres=gpu:1 --time=00:10:00 \
+srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
   python evaluate.py \
   --checkpoint checkpoints/metr_la_spo/best_model.pt \
   --data_path data/metr-la.npz \
