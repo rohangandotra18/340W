@@ -184,11 +184,11 @@ def main(args: argparse.Namespace) -> None:
     # Skip when SPO+ is active: its custom autograd function does CPU↔GPU
     # transfers inside forward() that are incompatible with CUDA graph tracing.
     if device.type == "cuda" and hasattr(torch, "compile") and not args.use_spo:
-        print("  Compiling model with torch.compile() for speed...")
-        try:
-            model = torch.compile(model)
-        except Exception as e:
-            print(f"  Warning: torch.compile() failed ({e}), continuing without it.")
+        print("  Skipping torch.compile() due to A100 MIG crashes (CUDA misaligned address).")
+        # try:
+        #     model = torch.compile(model)
+        # except Exception as e:
+        #     print(f"  Warning: torch.compile() failed ({e}), continuing without it.")
 
     # ── optimisation ─────────────────────────────────────────────────────
     if args.use_spo:
@@ -226,7 +226,7 @@ def main(args: argparse.Namespace) -> None:
         T_max=args.epochs,
         eta_min=args.lr * 0.01,
     )
-    scaler = torch.cuda.amp.GradScaler() if device.type == "cuda" else None
+    scaler = torch.amp.GradScaler("cuda") if device.type == "cuda" else None
 
     # ── training loop ─────────────────────────────────────────────────────
     out_dir = Path(args.output_dir)
