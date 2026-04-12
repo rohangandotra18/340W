@@ -216,8 +216,10 @@ class SPOPlusTrafficLoss(nn.Module):
         self.scaler_mean = scaler_mean
         self.scaler_std = scaler_std
 
+        from model.multitask_head import FocalLoss
+
         self.solver = ShortestPathSolver(edges, n_nodes, origin, destination)
-        self.ce = nn.CrossEntropyLoss()
+        self.ce = FocalLoss(gamma=2.0)
 
     def _speeds_to_edge_costs(self, speeds: torch.Tensor) -> torch.Tensor:
         """
@@ -240,8 +242,8 @@ class SPOPlusTrafficLoss(nn.Module):
     ) -> dict:
         from model.multitask_head import compute_congestion_labels
 
-        # --- MAE ---
-        mae = torch.nn.functional.l1_loss(speed_pred, speed_true)
+        # --- Smooth L1 ---
+        mae = torch.nn.functional.smooth_l1_loss(speed_pred, speed_true, beta=1.0)
 
         # Denormalise speeds prior to converting into threshold logic and travel times
         speed_pred_denorm = speed_pred * self.scaler_std + self.scaler_mean

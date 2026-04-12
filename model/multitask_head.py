@@ -30,6 +30,24 @@ def compute_congestion_labels(speeds: torch.Tensor, ffs: float = 65.0) -> torch.
     return labels
 
 
+class FocalLoss(nn.Module):
+    """
+    Focal Loss dynamically down-weights easy, common examples (like free-flow)
+    and aggressively penalizes the model for missing rare minority classes (congestion).
+    """
+
+    def __init__(self, gamma: float = 2.0):
+        super().__init__()
+        self.gamma = gamma
+        self.ce = nn.CrossEntropyLoss(reduction="none")
+
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        ce_loss = self.ce(inputs, targets)
+        pt = torch.exp(-ce_loss)
+        focal_loss = ((1 - pt) ** self.gamma) * ce_loss
+        return focal_loss.mean()
+
+
 class MultiTaskHead(nn.Module):
     """
     Branches from the shared encoder embedding:
@@ -78,7 +96,7 @@ class TrafficLoss(nn.Module):
         self.ffs = ffs
         self.scaler_mean = scaler_mean
         self.scaler_std = scaler_std
-        self.ce = nn.CrossEntropyLoss()
+        self.ce = FocalLoss(gamma=2.0)
 
     def forward(
         self,
@@ -86,7 +104,7 @@ class TrafficLoss(nn.Module):
         speed_true: torch.Tensor,  # (B, T', N)
         congestion_logits: torch.Tensor,  # (B, N, n_classes)
     ) -> dict:
-        mae = F.l1_loss(speed_pred, speed_true)
+        mae = F.smooth_l1_loss(speed_pred, speed_true, beta=1.0)
 
         # Denormalise speeds to compute physical congestion thresholds
         speed_true_denorm = speed_true * self.scaler_std + self.scaler_mean
