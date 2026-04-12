@@ -77,7 +77,7 @@ pip install 'numpy<2' torch networkx scipy pyyaml
 
 > **Note:** PyTorch 2.2 requires `numpy<2`. The above installs numpy 1.x first to avoid compatibility issues.
 
-Optional — real Mamba CUDA kernels (~10× faster on A100/V100):
+**Highly Recommended** — real Mamba CUDA kernels (prevents out-of-memory errors on large batches and runs ~10× faster on A100/V100):
 ```bash
 pip install mamba-ssm>=1.2.0
 ```
@@ -221,7 +221,7 @@ module load python/3.11.2
 python3 -m venv /storage/work/rjg6014/pdformer_venv
 source /storage/work/rjg6014/pdformer_venv/bin/activate
 pip install --no-cache-dir --upgrade pip
-pip install --no-cache-dir 'numpy<2' torch networkx scipy pyyaml
+pip install --no-cache-dir 'numpy<2' torch networkx scipy pyyaml mamba-ssm>=1.2.0
 ```
 
 ### 3. Download data on the login node
@@ -231,7 +231,7 @@ cd ~/340W
 python setup_data.py
 ```
 
-### 4. Submit standard training (batch=64, torch.compile enabled)
+### 4. Submit standard training (batch=64)
 
 ```bash
 cat > ~/340W/submit_train.sh << 'EOF'
@@ -266,9 +266,9 @@ sbatch ~/340W/submit_train.sh
 
 Expected runtime: **~45–60 minutes** on a single A100 MIG slice.
 
-### 5. Submit SPO+ training (batch=16, no torch.compile)
+### 5. Submit SPO+ training (batch=16)
 
-> **SPO+ constraints:** The custom autograd function does CPU↔GPU transfers (Dijkstra solver) that are incompatible with torch.compile and AMP inside the loss. Batch size 16 fits within the 10 GB MIG GPU slice. Requires 64 GB system RAM due to per-batch CPU Dijkstra solves + DataLoader workers.
+> **SPO+ constraints:** The custom autograd function does CPU↔GPU transfers (Dijkstra solver) that are incompatible with AMP inside the loss. Batch size 16 fits within the 10 GB MIG GPU slice. Requires 64 GB system RAM due to per-batch CPU Dijkstra solves + DataLoader workers.
 
 ```bash
 cat > ~/340W/submit_spo.sh << 'EOF'
