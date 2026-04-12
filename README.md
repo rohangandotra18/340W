@@ -221,7 +221,7 @@ module load python/3.11.2
 python3 -m venv /storage/work/rjg6014/pdformer_venv
 source /storage/work/rjg6014/pdformer_venv/bin/activate
 pip install --no-cache-dir --upgrade pip
-pip install --no-cache-dir 'numpy<2' torch networkx scipy pyyaml mamba-ssm>=1.2.0
+pip install --no-cache-dir 'numpy<2' torch networkx scipy pyyaml
 ```
 
 ### 3. Download data on the login node
@@ -231,7 +231,7 @@ cd ~/340W
 python setup_data.py
 ```
 
-### 4. Submit standard training (batch=64)
+### 4. Submit standard training (batch=16)
 
 ```bash
 cat > ~/340W/submit_train.sh << 'EOF'
@@ -257,14 +257,14 @@ python train.py \
   --in_channels 1 \
   --d_model    64 \
   --epochs     50 \
-  --batch_size 64 \
+  --batch_size 16 \
   --output_dir ./checkpoints/metr_la
 EOF
 
 sbatch ~/340W/submit_train.sh
 ```
 
-Expected runtime: **~45–60 minutes** on a single A100 MIG slice.
+Expected runtime: **~1.5–2.5 hours** on a single A100 MIG slice.
 
 ### 5. Submit SPO+ training (batch=16)
 
