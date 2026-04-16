@@ -88,7 +88,7 @@ class SelectiveSSM(nn.Module):
         B_sz, L, d_inner = x.shape
         d_state = A.shape[-1]
 
-        delta = F.softplus(delta)  # (B, L, d_inner)
+        delta = F.softplus(delta).clamp(max=10.0)  # (B, L, d_inner) Prevent delta explosion
         # Cast A to match input dtype so dA/dB stay in float16 under AMP.
         # exp(delta*A) is safe in float16: A<0 and delta>0 so the product is
         # negative and exp maps it to (0,1], well within float16 range.
@@ -100,6 +100,7 @@ class SelectiveSSM(nn.Module):
         ys = []
         for t in range(L):
             h = dA[:, t] * h + dB[:, t] * x[:, t].unsqueeze(-1)  # (B, d_inner, d_state)
+            h = h.clamp(-1e4, 1e4)  # Prevent recurrent state explosion causing NaNs
             ys.append((h * C[:, t].unsqueeze(1)).sum(-1))  # (B, d_inner)
 
         return torch.stack(ys, dim=1)  # (B, L, d_inner)

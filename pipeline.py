@@ -117,7 +117,7 @@ class TrafficTransformerPipeline:
         # Normalise input features using training set statistics
         x = (x - self.scaler_mean) / self.scaler_std
 
-        with torch.amp.autocast("cuda", enabled=self.device.type == "cuda"):
+        with torch.amp.autocast("cuda", enabled=False):
             out = self.model(x, adj)
 
         speed_pred = out["speed_pred"].squeeze(0).cpu().numpy()
