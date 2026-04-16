@@ -82,6 +82,8 @@ class PropagationDelayAttention(nn.Module):
         scores = torch.matmul(Q, K.transpose(-2, -1)) * self.scale  # (B, H, N, N)
         # Cast biases to scores dtype to avoid float32 promotion under AMP
         scores = scores + spatial_bias.unsqueeze(0).to(scores.dtype) + self.delay_bias.to(scores.dtype)
+        # Clamp scores to prevent softmax overflow/underflow
+        scores = scores.clamp(-50.0, 50.0)
 
         attn = F.softmax(scores, dim=-1)
         attn = self.attn_drop(attn)

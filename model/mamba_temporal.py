@@ -133,8 +133,9 @@ class SelectiveSSM(nn.Module):
         y = self._ssm_scan(x_conv, delta, A, B_mat, C_mat)
         y = y + x_conv * self.D.to(y.dtype)  # skip connection (keep float16 under AMP)
         y = y * F.silu(z)  # gating
-
-        return self.out_proj(y) + residual
+        out = self.out_proj(y) + residual
+        # Final safety clamp to prevent downstream NaN propagation
+        return out.clamp(-1e4, 1e4)
 
 
 class MambaTemporalBlock(nn.Module):
@@ -171,5 +172,9 @@ class MambaTemporalBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """x: (B, L, d_model)  →  (B, L, d_model)"""
         for layer in self.layers:
-            x = layer(x)
+            out = layer(x)
+            # If a layer produces NaN, skip it (keep previous x)
+            if torch.isnan(out).any():
+                continue
+            x = out
         return x

@@ -68,8 +68,8 @@ class _SPOPlusSurrogate(torch.autograd.Function):
             c_hat = pred_costs[i].detach().cpu().numpy()
             z_star = oracle_solutions[i]  # precomputed
 
-            # Surrogate cost
-            surrogate_cost = 2.0 * c_hat - c
+            # Surrogate cost — clamp to prevent extreme values in Dijkstra
+            surrogate_cost = np.clip(2.0 * c_hat - c, -1e6, 1e6)
             z_spo = surrogate_solver(surrogate_cost)
             z_spo_t = torch.from_numpy(z_spo).float().to(device)
             surrogate_sols.append(z_spo_t)
@@ -231,7 +231,9 @@ class SPOPlusTrafficLoss(nn.Module):
         costs = speeds.new_zeros(B, E)
         for i, (u, v) in enumerate(self.edges):
             edge_speed = (speeds[:, u] + speeds[:, v]) / 2.0
-            costs[:, i] = 1.0 / edge_speed.clamp(min=1e-3)  # inverse speed ≈ time
+            # Clamp speed to a meaningful minimum (1 mph) before inversion
+            # to prevent huge costs that destabilise Dijkstra and SPO+
+            costs[:, i] = 1.0 / edge_speed.clamp(min=1.0)
         return costs
 
     def forward(

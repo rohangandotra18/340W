@@ -53,8 +53,9 @@ def train_epoch(
 
         optimizer.zero_grad(set_to_none=True)
 
-        use_amp = scaler is not None
-        with torch.amp.autocast("cuda", enabled=use_amp):
+        # AMP is unconditionally disabled: the pure-PyTorch Mamba SSM scan
+        # accumulates recurrent states that overflow float16 range.
+        with torch.amp.autocast("cuda", enabled=False):
             out = model(x, adj)
 
         # Criterion runs outside autocast: SPO+ does CPU↔GPU transfers (numpy
@@ -63,16 +64,15 @@ def train_epoch(
         speed_pred = out["speed_pred"].permute(0, 2, 1).float()  # (B, T', N)
         losses = criterion(speed_pred, y.float(), out["congestion"].float())
 
-        if use_amp:
-            scaler.scale(losses["total"]).backward()
-            scaler.unscale_(optimizer)
-            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            scaler.step(optimizer)
-            scaler.update()
-        else:
-            losses["total"].backward()
-            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
+        # Skip batches that produce NaN loss (prevents corrupting model weights)
+        if torch.isnan(losses["total"]) or torch.isinf(losses["total"]):
+            print(f"    [Batch {i:3d}] WARNING: NaN/Inf loss detected — skipping batch", flush=True)
+            optimizer.zero_grad(set_to_none=True)
+            continue
+
+        losses["total"].backward()
+        nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        optimizer.step()
 
         total_loss += losses["total"].item()
         total_mae += losses["mae"].item()
@@ -85,7 +85,7 @@ def train_epoch(
                 flush=True,
             )
 
-    return total_loss / n, total_mae / n
+    return (total_loss / max(n, 1), total_mae / max(n, 1))
 
 
 @torch.no_grad()
@@ -116,7 +116,7 @@ def eval_epoch(
         total_rmse += ((speed_pred - y_real) ** 2).mean().sqrt().item()
         n += 1
 
-    return total_mae / n, total_rmse / n
+    return total_mae / max(n, 1), total_rmse / max(n, 1)
 
 
 # ── main ─────────────────────────────────────────────────────────────────────
@@ -252,7 +252,8 @@ def main(args: argparse.Namespace) -> None:
             f"{elapsed:.1f}s"
         )
 
-        if val_mae < best_val_mae:
+        # Only save if val_mae is a real number (not NaN/inf)
+        if not (val_mae != val_mae) and val_mae < best_val_mae:  # NaN != NaN is True
             best_val_mae = val_mae
             torch.save(
                 {

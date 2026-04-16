@@ -111,7 +111,9 @@ class PDFormerPlusPlus(nn.Module):
         −log(adj) makes strong connections (high weight) → small bias,
         matching the intuition that nearby nodes propagate congestion faster.
         """
-        return -torch.log(adj.clamp(min=1e-6))  # (N, N)
+        bias = -torch.log(adj.clamp(min=1e-6))  # (N, N)
+        # Cap the bias to prevent extreme values from dominating attention
+        return bias.clamp(max=20.0)
 
     # ------------------------------------------------------------------
     def forward(self, x: torch.Tensor, adj: torch.Tensor) -> dict:
