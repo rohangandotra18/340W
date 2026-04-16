@@ -103,7 +103,8 @@ def eval_epoch(
         x = x.to(device, non_blocking=True)
         y = y.to(device, non_blocking=True)
 
-        with torch.amp.autocast("cuda", enabled=device.type == "cuda"):
+        # Ensure AMP is disabled here too to prevent NaN in pure PyTorch Mamba
+        with torch.amp.autocast("cuda", enabled=False):
             out = model(x, adj)
         speed_pred = out["speed_pred"].permute(0, 2, 1)  # (B, T', N)
 

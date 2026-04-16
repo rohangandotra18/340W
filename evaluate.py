@@ -49,7 +49,7 @@ def evaluate_prediction(
 
     for x, y in loader:
         x = x.to(device, non_blocking=True)
-        with torch.amp.autocast("cuda", enabled=device.type == "cuda"):
+        with torch.amp.autocast("cuda", enabled=False):
             out = model(x, adj)
         speed_pred = out["speed_pred"].permute(0, 2, 1).cpu()  # (B, T', N)
         cong_logits = out["congestion"].cpu()  # (B, N, n_cls)
