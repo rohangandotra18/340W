@@ -15,6 +15,7 @@ otherwise a self-contained surrogate is provided.
 from __future__ import annotations
 
 from typing import List, Tuple
+import gc
 
 import numpy as np
 import torch
@@ -221,20 +222,23 @@ class SPOPlusTrafficLoss(nn.Module):
         self.solver = ShortestPathSolver(edges, n_nodes, origin, destination)
         self.ce = FocalLoss(gamma=2.0)
 
+        # Pre-compute edge endpoint indices as tensors for vectorised cost computation
+        src_idx = [u for u, v in edges]
+        dst_idx = [v for u, v in edges]
+        self.register_buffer('_src_idx', torch.tensor(src_idx, dtype=torch.long))
+        self.register_buffer('_dst_idx', torch.tensor(dst_idx, dtype=torch.long))
+
     def _speeds_to_edge_costs(self, speeds: torch.Tensor) -> torch.Tensor:
         """
         Convert per-node speed predictions (B, N) to per-edge travel times (B, E).
         Edge cost = mean speed of endpoint nodes, inverted to time.
+        Vectorised — no Python for-loop over edges.
         """
-        B = speeds.shape[0]
-        E = len(self.edges)
-        costs = speeds.new_zeros(B, E)
-        for i, (u, v) in enumerate(self.edges):
-            edge_speed = (speeds[:, u] + speeds[:, v]) / 2.0
-            # Clamp speed to a meaningful minimum (1 mph) before inversion
-            # to prevent huge costs that destabilise Dijkstra and SPO+
-            costs[:, i] = 1.0 / edge_speed.clamp(min=1.0)
-        return costs
+        # Gather endpoint speeds using pre-computed index tensors
+        src_speeds = speeds[:, self._src_idx]  # (B, E)
+        dst_speeds = speeds[:, self._dst_idx]  # (B, E)
+        edge_speed = (src_speeds + dst_speeds) / 2.0
+        return 1.0 / edge_speed.clamp(min=1.0)
 
     def forward(
         self,
@@ -268,12 +272,16 @@ class SPOPlusTrafficLoss(nn.Module):
         pred_costs = self._speeds_to_edge_costs(pred_mean)  # (B, E)
         true_costs = self._speeds_to_edge_costs(true_mean)  # (B, E)
 
-        # Oracle solutions under true costs
+        # Oracle solutions under true costs (run on CPU, no grad needed)
         oracle_sols = []
+        true_costs_np = true_costs.detach().cpu().numpy()
         for i in range(B):
-            sol = self.solver(true_costs[i].detach().cpu().numpy())
-            oracle_sols.append(torch.from_numpy(sol).float().to(speed_pred.device))
-        oracle_solutions = torch.stack(oracle_sols)  # (B, E)
+            sol = self.solver(true_costs_np[i])
+            oracle_sols.append(torch.from_numpy(sol).float())
+        del true_costs_np
+        oracle_solutions = torch.stack(oracle_sols).to(speed_pred.device)  # (B, E)
+        del oracle_sols
+        gc.collect()  # Free numpy intermediates from Dijkstra
 
         spo_loss = _SPOPlusSurrogate.apply(
             pred_costs, true_costs, oracle_solutions, self.solver
