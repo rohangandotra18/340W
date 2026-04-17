@@ -347,19 +347,19 @@ srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
 
 | Horizon | Standard MAE | SPO+ MAE | Standard RMSE | SPO+ RMSE | Standard MAPE | SPO+ MAPE |
 |---|---|---|---|---|---|---|
-| 15 min | 2.3997 | 2.4031 | 3.0075 | 3.0119 | 4.85% | 4.88% |
-| 30 min | 2.4079 | 2.4119 | 3.0184 | 3.0235 | 4.87% | 4.89% |
-| 60 min | 2.4694 | 2.4781 | 3.0996 | 3.1132 | 5.01% | 5.05% |
-| **Overall** | **2.4197** | **2.4238** | **3.0339** | **3.0398** | **4.90%** | **4.92%** |
+| 15 min | 2.3997 | 2.4003 | 3.0075 | 3.0084 | 4.85% | 4.86% |
+| 30 min | 2.4079 | 2.4096 | 3.0184 | 3.0207 | 4.87% | 4.87% |
+| 60 min | 2.4694 | 2.4710 | 3.0996 | 3.1034 | 5.01% | 5.03% |
+| **Overall** | **2.4197** | **2.4211** | **3.0339** | **3.0362** | **4.90%** | **4.91%** |
 
 ### Congestion Classification
 
 | Model | Accuracy | Free-flow F1 | Slow F1 |
 |---|---|---|---|
-| Standard (46 epochs) | 92.54% | 0.9365 | 0.9095 |
-| SPO+ (10 epochs) | 92.62% | 0.9378 | 0.9092 |
+| Standard (13 epochs) | 92.54% | 0.9365 | 0.9095 |
+| SPO+ (10 epochs) | 92.62% | 0.9376 | 0.9096 |
 
-SPO+ achieves better classification accuracy and Free-flow F1 scores with only 10 epochs of training vs 16 for the standard model, explicitly demonstrating how the decision-focused loss minimizes routing regret during the longest 60-minute horizons.
+SPO+ achieves better classification accuracy and Free-flow F1 scores with only 10 epochs of training vs 13 for the standard model, demonstrating how the decision-focused loss improves routing-relevant predictions while maintaining competitive statistical accuracy.
 
 ---
 
