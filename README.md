@@ -207,7 +207,7 @@ Compares Mamba vs GRU vs Transformer speed, SPO+ routing quality vs standard los
 ### 1. SSH in and clone
 
 ```bash
-ssh <PSUID>@submit.hpc.psu.edu
+ssh rjg6014@submit.hpc.psu.edu
 git clone https://github.com/rohangandotra18/340W.git
 cd 340W
 ```
@@ -218,8 +218,8 @@ cd 340W
 
 ```bash
 module load python/3.11.2
-python3 -m venv /storage/work/<PSUID>/pdformer_venv
-source /storage/work/<PSUID>/pdformer_venv/bin/activate
+python3 -m venv /storage/work/rjg6014/pdformer_venv
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir 'numpy<2' torch networkx scipy pyyaml
 ```
@@ -311,7 +311,7 @@ Expected runtime: **~16 min/epoch** (~13 hours for 50 epochs; 4-hour wall time g
 ### 6. Monitor jobs
 
 ```bash
-squeue -u <PSUID>                        # check job status
+squeue -u rjg6014                        # check job status
 tail -f ~/340W/train_spo_<JOBID>.log     # watch training progress
 cat ~/340W/train_spo_<JOBID>.err         # check for errors
 ```
@@ -321,7 +321,7 @@ cat ~/340W/train_spo_<JOBID>.err         # check for errors
 > **Do not evaluate on the login node** — it will be killed for memory usage.
 
 ```bash
-source /storage/work/<PSUID>/pdformer_venv/bin/activate
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 cd ~/340W
 
 # Standard model
@@ -347,16 +347,16 @@ srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
 
 | Horizon | Standard MAE | SPO+ MAE | Standard RMSE | SPO+ RMSE | Standard MAPE | SPO+ MAPE |
 |---|---|---|---|---|---|---|
-| 15 min | 2.4003 | 2.4031 | 3.0083 | 3.0119 | 4.85% | 4.88% |
-| 30 min | 2.4090 | 2.4119 | 3.0200 | 3.0235 | 4.88% | 4.89% |
-| 60 min | 2.4756 | 2.4781 | 3.1100 | 3.1132 | 5.03% | 5.05% |
-| **Overall** | **2.4216** | **2.4238** | **3.0371** | **3.0398** | **4.91%** | **4.92%** |
+| 15 min | 2.3997 | 2.4031 | 3.0075 | 3.0119 | 4.85% | 4.88% |
+| 30 min | 2.4079 | 2.4119 | 3.0184 | 3.0235 | 4.87% | 4.89% |
+| 60 min | 2.4694 | 2.4781 | 3.0996 | 3.1132 | 5.01% | 5.05% |
+| **Overall** | **2.4197** | **2.4238** | **3.0339** | **3.0398** | **4.90%** | **4.92%** |
 
 ### Congestion Classification
 
 | Model | Accuracy | Free-flow F1 | Slow F1 |
 |---|---|---|---|
-| Standard (16 epochs) | 92.53% | 0.9365 | 0.9093 |
+| Standard (46 epochs) | 92.54% | 0.9365 | 0.9095 |
 | SPO+ (10 epochs) | 92.62% | 0.9378 | 0.9092 |
 
 SPO+ achieves better classification accuracy and Free-flow F1 scores with only 10 epochs of training vs 16 for the standard model, explicitly demonstrating how the decision-focused loss minimizes routing regret during the longest 60-minute horizons.
