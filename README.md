@@ -248,10 +248,10 @@ cat > ~/340W/submit_train.sh << 'EOF'
 #SBATCH --error=train_%j.err
 
 module load python/3.11.2
-source /storage/work/<PSUID>/pdformer_venv/bin/activate
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 cd ~/340W
 
-python train.py \
+python -u train.py \
   --data_path  data/metr-la.npz \
   --adj_path   data/adj_metr_la.npz \
   --in_channels 1 \
@@ -264,11 +264,11 @@ EOF
 sbatch ~/340W/submit_train.sh
 ```
 
-Expected runtime: **~1.5–2.5 hours** on a single A100 MIG slice.
+Expected runtime: **~5 min/epoch, ~4 hours** for 50 epochs on a single A100. Best model converges around epoch 13.
 
-### 5. Submit SPO+ training (batch=16)
+### 5. Submit SPO+ training (batch=8)
 
-> **SPO+ constraints:** The custom autograd function does CPU↔GPU transfers (Dijkstra solver) that are incompatible with AMP inside the loss. Batch size 16 fits within the 10 GB MIG GPU slice. Requires 64 GB system RAM due to per-batch CPU Dijkstra solves + DataLoader workers.
+> **SPO+ constraints:** The SPO+ loss runs CPU-based Dijkstra for every sample in every batch, requiring significant system RAM. Use `batch_size=8`, `num_workers=0`, and `--mem=192GB`. Use `python -u` for unbuffered output.
 
 ```bash
 cat > ~/340W/submit_spo.sh << 'EOF'
@@ -277,25 +277,25 @@ cat > ~/340W/submit_spo.sh << 'EOF'
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=64GB
+#SBATCH --mem=192GB
 #SBATCH --gres=gpu:a100:1
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --partition=standard
 #SBATCH --output=train_spo_%j.log
 #SBATCH --error=train_spo_%j.err
 
 module load python/3.11.2
-source /storage/work/<PSUID>/pdformer_venv/bin/activate
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 cd ~/340W
 
-python train.py \
+python -u train.py \
   --data_path   data/metr-la.npz \
   --adj_path    data/adj_metr_la.npz \
   --in_channels 1 \
   --d_model     64 \
   --epochs      50 \
-  --batch_size  16 \
-  --num_workers 1 \
+  --batch_size  8 \
+  --num_workers 0 \
   --use_spo \
   --spo_weight  0.5 \
   --spo_origin  0 \
@@ -306,7 +306,7 @@ EOF
 sbatch ~/340W/submit_spo.sh
 ```
 
-Expected runtime: **~16 min/epoch** (~13 hours for 50 epochs; 4-hour wall time gets ~14 epochs).
+Expected runtime: **~9 min/epoch, ~8 hours** for 50 epochs on a single A100.
 
 ### 6. Monitor jobs
 
@@ -326,17 +326,17 @@ cd ~/340W
 
 # Standard model
 srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
-  python evaluate.py \
+  bash -c "source /storage/work/rjg6014/pdformer_venv/bin/activate && cd ~/340W && python -u evaluate.py \
   --checkpoint checkpoints/metr_la/best_model.pt \
   --data_path data/metr-la.npz \
-  --adj_path data/adj_metr_la.npz
+  --adj_path data/adj_metr_la.npz"
 
 # SPO+ model
 srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
-  python evaluate.py \
+  bash -c "source /storage/work/rjg6014/pdformer_venv/bin/activate && cd ~/340W && python -u evaluate.py \
   --checkpoint checkpoints/metr_la_spo/best_model.pt \
   --data_path data/metr-la.npz \
-  --adj_path data/adj_metr_la.npz
+  --adj_path data/adj_metr_la.npz"
 ```
 
 ---
