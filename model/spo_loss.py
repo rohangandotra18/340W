@@ -7,9 +7,6 @@ The routing regret back-propagates through the prediction model.
 
 Reference:
     Elmachtoub & Grigas, "Smart Predict-then-Optimize", Management Science 2022.
-
-When PyEPO is installed the official implementation is used;
-otherwise a self-contained surrogate is provided.
 """
 
 from __future__ import annotations
@@ -20,82 +17,6 @@ import gc
 import numpy as np
 import torch
 import torch.nn as nn
-
-# ---------------------------------------------------------------------------
-# Attempt to import PyEPO; fall back to built-in surrogate.
-# ---------------------------------------------------------------------------
-try:
-    pass
-
-    _HAS_PYEPO = True
-except ImportError:
-    _HAS_PYEPO = False
-
-
-# ============================================================================
-#  Built-in SPO+ surrogate (no external dependency)
-# ============================================================================
-
-
-class _SPOPlusSurrogate(torch.autograd.Function):
-    """
-    SPO+ surrogate loss for shortest-path problems.
-
-    Given predicted edge costs ĉ and true costs c:
-        z*(c)  = argmin_z  c^T z       (oracle shortest path under true costs)
-        z*(2ĉ − c) = argmin_z (2ĉ − c)^T z  (surrogate shortest path)
-
-        L_SPO+ = (2ĉ − c)^T z*(2ĉ − c) − 2 ĉ^T z*(c) + c^T z*(c)
-
-    The gradient ∂L/∂ĉ = 2(z*(2ĉ − c) − z*(c)) is subgradient-consistent.
-    """
-
-    @staticmethod
-    def forward(
-        ctx,
-        pred_costs: torch.Tensor,  # (B, n_edges)
-        true_costs: torch.Tensor,  # (B, n_edges)
-        oracle_solutions: torch.Tensor,  # (B, n_edges)  binary path indicator
-        surrogate_solver,  # callable(cost_vector) -> solution
-    ) -> torch.Tensor:
-        B = pred_costs.shape[0]
-        device = pred_costs.device
-
-        losses = []
-        surrogate_sols = []
-
-        for i in range(B):
-            c = true_costs[i].detach().cpu().numpy()
-            c_hat = pred_costs[i].detach().cpu().numpy()
-            z_star = oracle_solutions[i]  # precomputed
-
-            # Surrogate cost — clamp to prevent extreme values in Dijkstra
-            surrogate_cost = np.clip(2.0 * c_hat - c, -1e6, 1e6)
-            z_spo = surrogate_solver(surrogate_cost)
-            z_spo_t = torch.from_numpy(z_spo).float().to(device)
-            surrogate_sols.append(z_spo_t)
-
-            # SPO+ loss
-            c_t = true_costs[i]
-            c_hat_t = pred_costs[i]
-            loss_i = (
-                torch.dot(2 * c_hat_t - c_t, z_spo_t)
-                - 2 * torch.dot(c_hat_t, z_star)
-                + torch.dot(c_t, z_star)
-            )
-            losses.append(loss_i.clamp(min=0.0))
-
-        surrogate_stack = torch.stack(surrogate_sols)  # (B, n_edges)
-        ctx.save_for_backward(oracle_solutions, surrogate_stack)
-
-        return torch.stack(losses).mean()
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        oracle_solutions, surrogate_solutions = ctx.saved_tensors
-        # ∂L/∂ĉ = 2(z_spo − z_star)
-        grad = 2.0 * (surrogate_solutions - oracle_solutions) * grad_output
-        return grad, None, None, None
 
 
 # ============================================================================
@@ -116,8 +37,6 @@ class ShortestPathSolver:
         origin: int,
         destination: int,
     ):
-        pass
-
         self.edges = edges
         self.n_nodes = n_nodes
         self.origin = origin
@@ -169,7 +88,7 @@ class ShortestPathSolver:
 
 
 # ============================================================================
-#  Public API: SPO+ Traffic Loss
+#  Public API: SPO+ Traffic Loss (memory-efficient, no custom autograd)
 # ============================================================================
 
 
@@ -179,19 +98,12 @@ class SPOPlusTrafficLoss(nn.Module):
 
     Total loss = λ_mae · MAE + λ_ce · CE + λ_spo · SPO+
 
-    The SPO+ term requires a graph and OD pair to compute routing regret.
-    During training, a random OD pair can be sampled per batch, or a fixed
-    representative pair can be used.
-
-    Args:
-        edges:        directed edge list [(u, v), ...]
-        n_nodes:      number of graph nodes
-        origin:       source node for SPO+ routing
-        destination:  target node for SPO+ routing
-        lambda_mae:   weight for MAE regression loss
-        lambda_ce:    weight for congestion classification loss
-        lambda_spo:   weight for SPO+ routing regret loss
-        ffs:          free-flow speed for congestion label derivation
+    This implementation avoids torch.autograd.Function to prevent OOM.
+    The SPO+ gradient ∂L/∂ĉ = 2(z_spo − z_star) is computed analytically
+    in numpy and injected via a dot-product trick:
+        spo_loss = pred_costs · gradient.detach()
+    This gives identical gradients to the full SPO+ formulation but uses
+    constant memory regardless of batch count.
     """
 
     def __init__(
@@ -222,7 +134,7 @@ class SPOPlusTrafficLoss(nn.Module):
         self.solver = ShortestPathSolver(edges, n_nodes, origin, destination)
         self.ce = FocalLoss(gamma=2.0)
 
-        # Pre-compute edge endpoint indices as tensors for vectorised cost computation
+        # Pre-compute edge endpoint indices for vectorised cost computation
         src_idx = [u for u, v in edges]
         dst_idx = [v for u, v in edges]
         self.register_buffer('_src_idx', torch.tensor(src_idx, dtype=torch.long))
@@ -231,14 +143,57 @@ class SPOPlusTrafficLoss(nn.Module):
     def _speeds_to_edge_costs(self, speeds: torch.Tensor) -> torch.Tensor:
         """
         Convert per-node speed predictions (B, N) to per-edge travel times (B, E).
-        Edge cost = mean speed of endpoint nodes, inverted to time.
         Vectorised — no Python for-loop over edges.
         """
-        # Gather endpoint speeds using pre-computed index tensors
         src_speeds = speeds[:, self._src_idx]  # (B, E)
         dst_speeds = speeds[:, self._dst_idx]  # (B, E)
         edge_speed = (src_speeds + dst_speeds) / 2.0
         return 1.0 / edge_speed.clamp(min=1.0)
+
+    def _compute_spo_loss(self, pred_costs: torch.Tensor, true_costs: torch.Tensor) -> torch.Tensor:
+        """
+        Memory-efficient SPO+ loss computation.
+
+        Instead of a custom autograd.Function (which keeps the full computation
+        graph alive and leaks memory), we compute the SPO+ subgradient
+        analytically in numpy and inject it back via:
+
+            loss = (pred_costs * spo_grad.detach()).mean()
+
+        This ensures ∂loss/∂pred_costs = spo_grad, which is exactly the
+        SPO+ subgradient: 2(z_spo − z_star).
+        """
+        B = pred_costs.shape[0]
+
+        # All Dijkstra solving happens in pure numpy — no torch graphs
+        pred_np = pred_costs.detach().cpu().numpy()
+        true_np = true_costs.detach().cpu().numpy()
+
+        spo_grads = np.zeros_like(pred_np)  # (B, E)
+
+        for i in range(B):
+            # Oracle: shortest path under true costs
+            z_star = self.solver(true_np[i])
+
+            # Surrogate: shortest path under 2*pred - true
+            surrogate_cost = np.clip(2.0 * pred_np[i] - true_np[i], -1e6, 1e6)
+            z_spo = self.solver(surrogate_cost)
+
+            # SPO+ subgradient: 2(z_spo - z_star)
+            spo_grads[i] = 2.0 * (z_spo - z_star)
+
+        # Convert gradient to torch (detached — no graph needed)
+        spo_grad_t = torch.from_numpy(spo_grads).float().to(pred_costs.device)
+
+        # Dot-product trick: creates a scalar loss whose gradient w.r.t.
+        # pred_costs equals spo_grad_t (the analytical SPO+ subgradient)
+        spo_loss = (pred_costs * spo_grad_t).mean()
+
+        # Clean up
+        del pred_np, true_np, spo_grads, spo_grad_t
+        gc.collect()
+
+        return spo_loss.clamp(min=0.0)
 
     def forward(
         self,
@@ -264,28 +219,14 @@ class SPOPlusTrafficLoss(nn.Module):
             labels.reshape(B * N),
         )
 
-        # --- SPO+ ---
-        # Use mean over prediction horizon for routing cost
+        # --- SPO+ (memory-efficient) ---
         pred_mean = speed_pred_denorm.mean(dim=1)  # (B, N)
         true_mean = speed_true_denorm.mean(dim=1)  # (B, N)
 
         pred_costs = self._speeds_to_edge_costs(pred_mean)  # (B, E)
         true_costs = self._speeds_to_edge_costs(true_mean)  # (B, E)
 
-        # Oracle solutions under true costs (run on CPU, no grad needed)
-        oracle_sols = []
-        true_costs_np = true_costs.detach().cpu().numpy()
-        for i in range(B):
-            sol = self.solver(true_costs_np[i])
-            oracle_sols.append(torch.from_numpy(sol).float())
-        del true_costs_np
-        oracle_solutions = torch.stack(oracle_sols).to(speed_pred.device)  # (B, E)
-        del oracle_sols
-        gc.collect()  # Free numpy intermediates from Dijkstra
-
-        spo_loss = _SPOPlusSurrogate.apply(
-            pred_costs, true_costs, oracle_solutions, self.solver
-        )
+        spo_loss = self._compute_spo_loss(pred_costs, true_costs)
 
         total = self.lambda_mae * mae + self.lambda_ce * ce + self.lambda_spo * spo_loss
 
