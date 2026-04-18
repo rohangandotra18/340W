@@ -35,6 +35,22 @@ On Roar Collab A100 this trains in < 1 hour for 150 epochs on METR-LA.
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 
+def _has_nan_params(model: nn.Module) -> bool:
+    """Check if any model parameter or gradient contains NaN/Inf."""
+    for p in model.parameters():
+        if p.data is not None and (torch.isnan(p.data).any() or torch.isinf(p.data).any()):
+            return True
+    return False
+
+
+def _has_nan_grads(model: nn.Module) -> bool:
+    """Check if any computed gradient contains NaN/Inf."""
+    for p in model.parameters():
+        if p.grad is not None and (torch.isnan(p.grad).any() or torch.isinf(p.grad).any()):
+            return True
+    return False
+
+
 def train_epoch(
     model: nn.Module,
     loader: DataLoader,
@@ -46,6 +62,7 @@ def train_epoch(
 ) -> tuple[float, float]:
     model.train()
     total_loss = total_mae = n = 0
+    nan_batches = 0
 
     for i, (x, y) in enumerate(loader):
         x = x.to(device, non_blocking=True)  # (B, in_T, N, C)
@@ -58,19 +75,39 @@ def train_epoch(
         with torch.amp.autocast("cuda", enabled=False):
             out = model(x, adj)
 
+        # Check for NaN in model output BEFORE computing loss
+        speed_pred = out["speed_pred"].permute(0, 2, 1).float()  # (B, T', N)
+        if torch.isnan(speed_pred).any() or torch.isnan(out["congestion"]).any():
+            nan_batches += 1
+            if nan_batches <= 3:
+                print(f"    [Batch {i:3d}] WARNING: NaN in model output — skipping batch", flush=True)
+            continue
+
         # Criterion runs outside autocast: SPO+ does CPU↔GPU transfers (numpy
         # Dijkstra) that crash if the inductor has CUDA graph capture active.
-        # Casting to float32 is a no-op for standard loss but safe for SPO+.
-        speed_pred = out["speed_pred"].permute(0, 2, 1).float()  # (B, T', N)
         losses = criterion(speed_pred, y.float(), out["congestion"].float())
 
         # Skip batches that produce NaN loss (prevents corrupting model weights)
         if torch.isnan(losses["total"]) or torch.isinf(losses["total"]):
-            print(f"    [Batch {i:3d}] WARNING: NaN/Inf loss detected — skipping batch", flush=True)
-            optimizer.zero_grad(set_to_none=True)
+            nan_batches += 1
+            if nan_batches <= 3:
+                print(f"    [Batch {i:3d}] WARNING: NaN/Inf loss — skipping batch", flush=True)
             continue
 
         losses["total"].backward()
+
+        # CRITICAL: check gradients for NaN AFTER backward(). This is the
+        # main source of silent weight corruption — a finite loss can still
+        # produce NaN gradients through divisions, exps, and log in the
+        # backward graph. Applying NaN gradients via optimizer.step()
+        # permanently corrupts model weights.
+        if _has_nan_grads(model):
+            nan_batches += 1
+            if nan_batches <= 3:
+                print(f"    [Batch {i:3d}] WARNING: NaN gradients after backward — skipping update", flush=True)
+            optimizer.zero_grad(set_to_none=True)
+            continue
+
         nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
 
@@ -84,6 +121,9 @@ def train_epoch(
                 f"    [Batch {i:3d}/{len(loader)}] Loss: {losses['total'].item():.4f}",
                 flush=True,
             )
+
+    if nan_batches > 0:
+        print(f"    ⚠ {nan_batches}/{len(loader)} batches skipped due to NaN", flush=True)
 
     return (total_loss / max(n, 1), total_mae / max(n, 1))
 
@@ -234,10 +274,34 @@ def main(args: argparse.Namespace) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     best_val_mae = float("inf")
+    nan_epoch_count = 0
     print(f"\nTraining for {args.epochs} epochs …\n")
 
     for epoch in range(1, args.epochs + 1):
         t0 = time.perf_counter()
+
+        # Check for corrupted weights at epoch start
+        if _has_nan_params(model):
+            nan_epoch_count += 1
+            print(f"Ep {epoch:3d}/{args.epochs} | ⚠ Model weights contain NaN!", flush=True)
+            best_ckpt = out_dir / "best_model.pt"
+            if best_ckpt.exists():
+                print(f"  → Rolling back to last best checkpoint …", flush=True)
+                ckpt = torch.load(best_ckpt, map_location=device)
+                model.load_state_dict(ckpt["model_state_dict"])
+                optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+                # Lower LR after rollback to prevent re-divergence
+                for pg in optimizer.param_groups:
+                    pg["lr"] *= 0.5
+                print(f"  → Rolled back. LR halved to {optimizer.param_groups[0]['lr']:.2e}", flush=True)
+            else:
+                print(f"  → No checkpoint to roll back to — reinitialising weights", flush=True)
+                model._init_weights()
+            if nan_epoch_count >= 5:
+                print(f"  ✗ Too many NaN rollbacks ({nan_epoch_count}) — stopping early.", flush=True)
+                break
+            continue
+
         train_loss, train_mae = train_epoch(
             model, train_loader, optimizer, criterion, adj, device, scaler
         )
@@ -255,6 +319,7 @@ def main(args: argparse.Namespace) -> None:
         # Only save if val_mae is a real number (not NaN/inf)
         if not (val_mae != val_mae) and val_mae < best_val_mae:  # NaN != NaN is True
             best_val_mae = val_mae
+            nan_epoch_count = 0  # Reset NaN counter on good save
             torch.save(
                 {
                     "epoch": epoch,
@@ -303,7 +368,7 @@ if __name__ == "__main__":
     # Training
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--batch_size", type=int, default=64)
-    p.add_argument("--lr", type=float, default=5e-4)
+    p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)
     p.add_argument("--lambda1", type=float, default=1.0, help="Regression loss weight")
     p.add_argument(
