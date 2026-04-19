@@ -218,8 +218,8 @@ cd 340W
 
 ```bash
 module load python/3.11.2
-python3 -m venv /storage/work/<PSU.ID>/pdformer_venv
-source /storage/work/<PSU.ID>/pdformer_venv/bin/activate
+python3 -m venv /storage/work/rjg6014/pdformer_venv
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir 'numpy<2' torch networkx scipy pyyaml
 ```
@@ -242,13 +242,13 @@ cat > ~/340W/submit_train.sh << 'EOF'
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32GB
 #SBATCH --gres=gpu:a100:1
-#SBATCH --time=04:00:00
+#SBATCH --time=05:00:00
 #SBATCH --partition=standard
 #SBATCH --output=train_%j.log
 #SBATCH --error=train_%j.err
 
 module load python/3.11.2
-source /storage/work/<PSU.ID>/pdformer_venv/bin/activate
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 cd ~/340W
 
 python -u train.py \
@@ -264,7 +264,7 @@ EOF
 sbatch ~/340W/submit_train.sh
 ```
 
-Expected runtime: **~5 min/epoch, ~4 hours** for 50 epochs on a single A100. Best model converges around epoch 13.
+Expected runtime: **~5 min/epoch, ~4.5 hours** for 50 epochs on a single A100. Best model converges around epoch 13.
 
 ### 5. Submit SPO+ training (batch=8)
 
@@ -285,7 +285,7 @@ cat > ~/340W/submit_spo.sh << 'EOF'
 #SBATCH --error=train_spo_%j.err
 
 module load python/3.11.2
-source /storage/work/<PSU.ID>/pdformer_venv/bin/activate
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 cd ~/340W
 
 python -u train.py \
@@ -311,7 +311,7 @@ Expected runtime: **~9 min/epoch, ~8 hours** for 50 epochs on a single A100.
 ### 6. Monitor jobs
 
 ```bash
-squeue -u <PSU.ID>                        # check job status
+squeue -u rjg6014                       # check job status
 tail -f ~/340W/train_spo_<JOBID>.log     # watch training progress
 cat ~/340W/train_spo_<JOBID>.err         # check for errors
 ```
@@ -321,19 +321,19 @@ cat ~/340W/train_spo_<JOBID>.err         # check for errors
 > **Do not evaluate on the login node** — it will be killed for memory usage.
 
 ```bash
-source /storage/work/<PSU.ID>/pdformer_venv/bin/activate
+source /storage/work/rjg6014/pdformer_venv/bin/activate
 cd ~/340W
 
 # Standard model
 srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
-  bash -c "source /storage/work/<PSU.ID>/pdformer_venv/bin/activate && cd ~/340W && python -u evaluate.py \
+  bash -c "source /storage/work/rjg6014/pdformer_venv/bin/activate && cd ~/340W && python -u evaluate.py \
   --checkpoint checkpoints/metr_la/best_model.pt \
   --data_path data/metr-la.npz \
   --adj_path data/adj_metr_la.npz"
 
 # SPO+ model
 srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
-  bash -c "source /storage/work/<PSU.ID>/pdformer_venv/bin/activate && cd ~/340W && python -u evaluate.py \
+  bash -c "source /storage/work/rjg6014/pdformer_venv/bin/activate && cd ~/340W && python -u evaluate.py \
   --checkpoint checkpoints/metr_la_spo/best_model.pt \
   --data_path data/metr-la.npz \
   --adj_path data/adj_metr_la.npz"
@@ -347,19 +347,19 @@ srun --partition=standard --mem=16GB --gres=gpu:a100:1 --time=00:10:00 \
 
 | Horizon | Standard MAE | SPO+ MAE | Standard RMSE | SPO+ RMSE | Standard MAPE | SPO+ MAPE |
 |---|---|---|---|---|---|---|
-| 15 min | 2.3997 | 2.4003 | 3.0075 | 3.0084 | 4.85% | 4.86% |
-| 30 min | 2.4079 | 2.4096 | 3.0184 | 3.0207 | 4.87% | 4.87% |
-| 60 min | 2.4694 | 2.4710 | 3.0996 | 3.1034 | 5.01% | 5.03% |
-| **Overall** | **2.4197** | **2.4211** | **3.0339** | **3.0362** | **4.90%** | **4.91%** |
+| 15 min | 2.4031 | 2.4039 | 3.0119 | 3.0130 | 4.86% | 4.87% |
+| 30 min | 2.4141 | 2.4148 | 3.0262 | 3.0270 | 4.89% | 4.89% |
+| 60 min | 2.4952 | 2.4922 | 3.1351 | 3.1302 | 5.10% | 5.08% |
+| **Overall** | **2.4292** | **2.4303** | **3.0467** | **3.0480** | **4.93%** | **4.93%** |
 
 ### Congestion Classification
 
 | Model | Accuracy | Free-flow F1 | Slow F1 |
 |---|---|---|---|
-| Standard (13 epochs) | 92.54% | 0.9365 | 0.9095 |
-| SPO+ (10 epochs) | 92.62% | 0.9376 | 0.9096 |
+| Standard (29 epochs) | 92.48% | 0.9354 | 0.9100 |
+| SPO+ (7 epochs) | 92.56% | 0.9365 | 0.9102 |
 
-SPO+ achieves better classification accuracy and Free-flow F1 scores with only 10 epochs of training vs 13 for the standard model, demonstrating how the decision-focused loss improves routing-relevant predictions while maintaining competitive statistical accuracy.
+SPO+ achieves better classification accuracy and F1 scores with only 7 epochs of training vs 29 for the standard model, demonstrating how the decision-focused loss improves routing-relevant predictions while maintaining competitive statistical accuracy.
 
 ---
 
